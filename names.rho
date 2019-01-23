@@ -1,0 +1,32 @@
+new myset, addtomyset, initial, stdout(`rho:io:stdout`) in {
+  initial!({}) |
+  for (initialVal <- initial) {
+    stdout!("Initial value : " ++ *initialVal) |
+    myset!(*initialVal) |
+
+    for (add <- addtomyset) {
+      stdout!("WILL TRY TO ADD : " ++ *add.get("key")) |
+      for (current <- myset) {
+        stdout!("CURRENT VALUE : ") |
+        stdout!(*current) |
+        match *current.contains(*add.get("key")) {
+          true => {
+            stdout!("ALREADY TAKEN") |
+            myset!(*current)
+          }
+          false => {
+            stdout!("NOT TAKEN") |
+            myset!(*current.set(*add.get("key"), *add.get("value")))
+          }
+        }
+      }
+    } |
+    addtomyset!(
+      {
+        "domain": "mydomain",
+        "publicKey": "azeaze123aze123aze123aze123",
+        "signatureForCurrentPublicKey": "uioyuityurty"
+      }
+    )
+  }
+}
