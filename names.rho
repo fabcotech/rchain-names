@@ -1,31 +1,25 @@
-new myset, addtomyset, initial, stdout(`rho:io:stdout`) in {
+new domains, adddomain, initial in {
   initial!({}) |
   for (initialVal <- initial) {
-    stdout!("Initial value : " ++ *initialVal) |
-    myset!(*initialVal) |
+    domains!(*initialVal) |
 
-    for (add <- addtomyset) {
-      stdout!("WILL TRY TO ADD : " ++ *add.get("key")) |
-      for (current <- myset) {
-        stdout!("CURRENT VALUE : ") |
-        stdout!(*current) |
+    for (add <- adddomain) {
+      for (current <- domains) {
         match *current.contains(*add.get("key")) {
           true => {
-            stdout!("ALREADY TAKEN") |
-            myset!(*current)
+            domains!(*current)
           }
           false => {
-            stdout!("NOT TAKEN") |
-            myset!(*current.set(*add.get("key"), *add.get("value")))
+            domains!(*current.set(*add.get("key"), *add.get("value")))
           }
         }
       }
     } |
     addtomyset!(
       {
-        "domain": "mydomain",
-        "publicKey": "azeaze123aze123aze123aze123",
-        "signatureForCurrentPublicKey": "uioyuityurty"
+        "name": "mydomain",
+        "publickey": "azeaze123aze123aze123aze123",
+        "registryaddress": "123456778098"
       }
     )
   }
