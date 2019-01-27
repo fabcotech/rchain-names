@@ -1,21 +1,74 @@
-new domains, adddomain, initial in {
-  initial!({}) |
+new records, addrecord, editrecord, initial, verify, hashdomain, stdout(`rho:io:stdout`) in {
+  initial!({
+      "mydomain": {
+        "name": "mydomain",
+        "publickey": "azeaze123aze123aze123aze123",
+        "registryaddress": "123456778098"
+      }
+  }) |
   for (initialVal <- initial) {
-    domains!(*initialVal) |
+    records!(*initialVal) |
 
-    for (add <- adddomain) {
-      for (current <- domains) {
-        match *current.contains(*add.get("key")) {
+    for (recordtoadd <- addrecord) {
+      for (current <- records) {
+        match *current.contains(*recordtoadd.get("name")) {
           true => {
-            domains!(*current)
+            stdout!("error: name already taken") |
+            records!(*current)
           }
           false => {
-            domains!(*current.set(*add.get("key"), *add.get("value")))
+            records!(*current.set(*recordtoadd.get("name"), *recordtoadd))
           }
         }
       }
     } |
-    addtomyset!(
+
+    addrecord!(
+      {
+        "name": "mydomain",
+        "publickey": "azeaze123aze123aze123aze123",
+        "registryaddress": "123456778098"
+      }
+    ) |
+    
+    
+
+    for (recordtoedit <- editrecord) {
+      for (current <- records) {
+        match *current.contains(*recordtoedit.get("name")) {
+          true => {
+            @"keccak256Hash"!("mydomain".toUTFBytes(), *hashdomain) |
+            for (hash <- hashdomain) {
+                stdout!(*hash) |
+                @"ed25519Verify"!(
+                  *hash,
+                  "signature".hexToBytes(),
+                  "publickey".hexToBytes(),
+                  *verify
+                )
+            } |
+            for (verified <- verify) {
+              match *verified {
+                true => {
+                  stdout!("VERIFIED") |
+                  records!(*current.set(*recordtoedit.get("name"), *recordtoedit))
+                }
+                false => {
+                  stdout!("error: name not found") |
+                  records!(*current)
+                }
+              }
+            }
+          }
+          false => {
+              stdout!("error: name not found") |
+              records!(*current)
+          }
+        }
+      }
+    } |
+    
+    editrecord!(
       {
         "name": "mydomain",
         "publickey": "azeaze123aze123aze123aze123",

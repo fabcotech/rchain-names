@@ -39,11 +39,17 @@ A proposition:
 - 500\$ for 2 characters long names.
 - 100\$ for 3 characters long names.
 - 20\$ for 4/5 characters long names.
-- 10\$ for 6 characters long names.
-- 2\$ for 7-12 characters long names.
+- 10\$ for 6-7 characters long names.
+- 2\$ for 8-12 characters long names.
 - 1\$ for 12-32 characters long names.
 
-#### prevent "yahoo" or "mozilla" from being bought by random persons
+- 1\$ to lock a record.
+
+#### Where should these REVS go ?
+
+Good question, should they be burned ? should they be controlled by an independant organization ?
+
+#### Prevent "yahoo" or "mozilla" from being bought by random persons
 
 It could be a cool idea to forbid anyone from buying one of the 10 000 more frequented websites in the world. All these names could be at genesis owned by a honest third party who's only purpose is to identify the legitimate requests from big corporations or governements for a given name. When rightly identified, the third party would just edit the public key of the record so its owner changes.
 
