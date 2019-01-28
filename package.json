@@ -1,0 +1,23 @@
+{
+  "name": "rchain-names",
+  "version": "0.0.1",
+  "description": "Contract that handles name booking/selling on the RChain platform.",
+  "main": "generate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabcotech/rchain-names.git"
+  },
+  "author": "FABCO",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fabcotech/rchain-names/issues"
+  },
+  "homepage": "https://github.com/fabcotech/rchain-names#readme",
+  "dependencies": {
+    "ed25519": "0.0.4",
+    "js-sha3": "^0.8.0"
+  }
+}

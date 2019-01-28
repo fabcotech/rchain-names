@@ -58,3 +58,33 @@ It could be a cool idea to forbid anyone from buying one of the 10 000 more freq
 Since the prices will be expressed in REVS, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars.
 
 Every idea/proposition is welcome
+
+### Setup
+
+You can easily generate contracts for a given name, this repository provides a quick way to do it with node JS.
+
+Of course you have to have a private/public key pair, and you have to know the registry address you want to associate your name to. We also consider that you have a running rnode instance.
+
+```
+# install dependencies
+npm i
+
+# Now you can edit the variables on top of generate.js file
+# change the values with the one you want
+
+# then generate the contracts
+node generate.js
+
+# deploy the main names.rho contract
+rnode deploy --phlo-price 1 --phlo-limit 1000 names.rho
+rnode propose
+
+# Create a record
+rnode deploy --phlo-price 1 --phlo-limit 1000 create-name.rho
+rnode propose
+
+# Update a record
+rnode deploy --phlo-price 1 --phlo-limit 1000 update-name.rho
+rnode propose
+
+```
