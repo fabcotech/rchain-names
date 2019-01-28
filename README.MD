@@ -1,5 +1,7 @@
 Contract that handles name booking/selling on the RChain platform.
 
+The main file is `name.rho`.
+
 ### How a name is represented onchain
 
 The values stored in this contract are an array of Records.
@@ -64,6 +66,8 @@ Every idea/proposition is welcome
 You can easily generate contracts for a given name, this repository provides a quick way to do it with node JS.
 
 Of course you have to have a private/public key pair, and you have to know the registry address you want to associate your name to. We also consider that you have a running rnode instance.
+
+This setup has been done with rnode 0.8.3
 
 ```
 # install dependencies
