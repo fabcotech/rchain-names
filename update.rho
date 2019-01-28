@@ -1,0 +1,10 @@
+new stdout(`rho:io:stdout`) in {
+    @"updaterecord"!(
+       {
+         "name": "mydomain",
+         "publickey": "another or the same publickey",
+         "registryaddress": "another or the same registry address",
+         "signature": "ed25519 signature of the name"
+       }
+    )
+}

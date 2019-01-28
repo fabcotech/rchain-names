@@ -1,0 +1,9 @@
+new stdout(`rho:io:stdout`) in {
+    @"addrecord"!(
+       {
+         "name": "mydomain",
+         "publickey": "azeaze123aze123aze123aze123",
+         "registryaddress": "123456778098"
+       }
+    )
+}

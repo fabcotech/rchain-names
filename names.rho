@@ -1,11 +1,5 @@
-new records, addrecord, editrecord, initial, verify, hashdomain, stdout(`rho:io:stdout`) in {
-  initial!({
-      "mydomain": {
-        "name": "mydomain",
-        "publickey": "azeaze123aze123aze123aze123",
-        "registryaddress": "123456778098"
-      }
-  }) |
+new records, addrecord, updaterecord, initial, verify, hashdomain, stdout(`rho:io:stdout`) in {
+  initial!({}) |
   for (initialVal <- initial) {
     records!(*initialVal) |
 
@@ -13,48 +7,44 @@ new records, addrecord, editrecord, initial, verify, hashdomain, stdout(`rho:io:
       for (current <- records) {
         match *current.contains(*recordtoadd.get("name")) {
           true => {
-            stdout!("error: name already taken") |
+            stdout!("error: name " ++ *recordtoadd.get("name") ++ " already taken") |
             records!(*current)
           }
           false => {
+            stdout!("success: record " ++ *recordtoadd.get("name") ++ " added") |
             records!(*current.set(*recordtoadd.get("name"), *recordtoadd))
           }
         }
       }
     } |
 
-    addrecord!(
-      {
-        "name": "mydomain",
-        "publickey": "azeaze123aze123aze123aze123",
-        "registryaddress": "123456778098"
-      }
-    ) |
-    
-    
+    for (v <= @"addrecord") {
+      addrecord!(*v)
+    } |
 
-    for (recordtoedit <- editrecord) {
+
+    for (recordtoupdate <- updaterecord) {
       for (current <- records) {
-        match *current.contains(*recordtoedit.get("name")) {
+        match *current.contains(*recordtoupdate.get("name")) {
           true => {
-            @"keccak256Hash"!("mydomain".toUTFBytes(), *hashdomain) |
+            @"keccak256Hash"!(*recordtoupdate.get("name").toUtf8Bytes(), *hashdomain) |
             for (hash <- hashdomain) {
                 stdout!(*hash) |
                 @"ed25519Verify"!(
                   *hash,
-                  "signature".hexToBytes(),
-                  "publickey".hexToBytes(),
+                  *recordtoupdate.get("signature").hexToBytes(),
+                  *current.get(*recordtoupdate.get("name")).get("publickey").hexToBytes(),
                   *verify
                 )
             } |
             for (verified <- verify) {
               match *verified {
                 true => {
-                  stdout!("VERIFIED") |
-                  records!(*current.set(*recordtoedit.get("name"), *recordtoedit))
+                  stdout!("success: record updated") |
+                  records!(*current.set(*recordtoupdate.get("name"), *recordtoupdate))
                 }
                 false => {
-                  stdout!("error: name not found") |
+                  stdout!("error: invalid signature") |
                   records!(*current)
                 }
               }
@@ -67,13 +57,9 @@ new records, addrecord, editrecord, initial, verify, hashdomain, stdout(`rho:io:
         }
       }
     } |
-    
-    editrecord!(
-      {
-        "name": "mydomain",
-        "publickey": "azeaze123aze123aze123aze123",
-        "registryaddress": "123456778098"
-      }
-    )
+
+    for (v <= @"updaterecord") {
+      updaterecord!(*v)
+    }
   }
 }
