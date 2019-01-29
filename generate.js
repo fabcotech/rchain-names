@@ -31,7 +31,7 @@ new stdout(\`rho:io:stdout\`) in {
 
 const updateCode = `
 new stdout(\`rho:io:stdout\`) in {
-  @"addrecord"!(
+  @"updaterecord"!(
      {
        "name": "${NAME}",
        "publickey": "${PUBLICKEY}",
