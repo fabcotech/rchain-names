@@ -1,6 +1,6 @@
 Contract that handles name booking/selling on the RChain platform.
 
-The main file is `name.rho`.
+The main file is `names.rho`.
 
 ### How a name is represented onchain
 
