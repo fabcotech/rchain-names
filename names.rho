@@ -1,65 +1,65 @@
-new records, addrecord, updaterecord, initial, verify, hashdomain, stdout(`rho:io:stdout`) in {
-  initial!({}) |
-  for (initialVal <- initial) {
-    records!(*initialVal) |
-
-    for (recordtoadd <- addrecord) {
-      for (current <- records) {
-        match *current.contains(*recordtoadd.get("name")) {
-          true => {
-            stdout!("error: name " ++ *recordtoadd.get("name") ++ " already taken") |
-            records!(*current)
-          }
-          false => {
-            stdout!("success: record " ++ *recordtoadd.get("name") ++ " added") |
-            records!(*current.set(*recordtoadd.get("name"), *recordtoadd))
-          }
-        }
-      }
-    } |
-
-    for (v <= @"addrecord") {
-      addrecord!(*v)
-    } |
-
-
-    for (recordtoupdate <- updaterecord) {
-      for (current <- records) {
-        match *current.contains(*recordtoupdate.get("name")) {
-          true => {
-            @"keccak256Hash"!(*recordtoupdate.get("name").toUtf8Bytes(), *hashdomain) |
-            for (hash <- hashdomain) {
-                stdout!(*hash) |
-                @"ed25519Verify"!(
-                  *hash,
-                  *recordtoupdate.get("signature").hexToBytes(),
-                  *current.get(*recordtoupdate.get("name")).get("publickey").hexToBytes(),
-                  *verify
-                )
-            } |
-            for (verified <- verify) {
-              match *verified {
-                true => {
-                  stdout!("success: record updated") |
-                  records!(*current.set(*recordtoupdate.get("name"), *recordtoupdate))
-                }
-                false => {
-                  stdout!("error: invalid signature") |
-                  records!(*current)
-                }
+new records, update, add, hashdomain, verify, insertArbitrary(`rho:registry:insertArbitrary`), stdout(`rho:io:stdout`) in {
+  // Send an initially empty map
+  records!({}) | 
+  
+  // Update a record
+  contract update(record, return) = {
+    for (current <- records) {
+      match *current.contains(*record.get("name")) {
+        true => {
+          @"keccak256Hash"!(*record.get("name").toUtf8Bytes(), *hashdomain) |
+          for (hash <- hashdomain) {
+              @"ed25519Verify"!(
+                *hash,
+                *record.get("signature").hexToBytes(),
+                *current.get(*record.get("name")).get("publickey").hexToBytes(),
+                *verify
+              )
+          } |
+          for (verified <- verify) {
+            match *verified {
+              true => {
+                return!("success: record updated") |
+                records!(*current.set(*record.get("name"), *record))
+              }
+              false => {
+                return!("error: invalid signature") |
+                records!(*current)
               }
             }
           }
-          false => {
-              stdout!("error: name not found") |
-              records!(*current)
-          }
+        }
+        false => {
+            return!("error: name not found") |
+            records!(*current)
         }
       }
-    } |
-
-    for (v <= @"updaterecord") {
-      updaterecord!(*v)
     }
-  }
+  } |
+
+  // Add a record
+  contract add(record, return) = {
+    for (current <- records) {
+      match *current.contains(*record.get("name")) {
+      true => {
+        return!("error: name " ++ *record.get("name") ++ " already taken") |
+        records!(*current)
+      }
+      false => {
+        return!("success: record " ++ *record.get("name") ++ " added") |
+        records!(*current.set(*record.get("name"), *record))
+      }}
+    }
+  } |
+
+  // Register contracts
+  new updateUriCh, addUriCh in {
+    insertArbitrary!(bundle+{*update}, *updateUriCh) |
+    insertArbitrary!(bundle+{*add}, *addUriCh)
+  } |
+
+  // Hack to get the underlying unforgeable names
+  // A nicer way is to use the peviewUnforgeableNames api that @dckc wrote
+  // An even nicer solution would be rearchitecting the node a bit #OutOfScope
+  stdout!([*update, *add])
 }
