@@ -49,7 +49,7 @@ A proposition:
 
 #### Where should these REVS go ?
 
-Good question, should they be burned ? should they be controlled by an independant organization ?
+Good question, should they be burned ? should they be controlled by an independant organization ? Or simply sent to the validator that validated the last block.
 
 #### Prevent "yahoo" or "mozilla" from being bought by random persons
 
@@ -83,12 +83,17 @@ node generate.js
 rnode deploy --phlo-price 1 --phlo-limit 1000 names.rho
 rnode propose
 
+# Note the log that ressembles `rho:id:xxxxxx`, xxxxxxxx is the registry entry point
+# Now edit the update.rho and create.rho files so they point to the right registry address
+
 # Create a record
-rnode deploy --phlo-price 1 --phlo-limit 1000 create-name.rho
+rnode deploy --phlo-price 1 --phlo-limit 1000 create.rho
 rnode propose
 
 # Update a record
-rnode deploy --phlo-price 1 --phlo-limit 1000 update-name.rho
+rnode deploy --phlo-price 1 --phlo-limit 1000 update.rho
 rnode propose
+
+# You just created a record and updated it so it points to another registry address (bbbb)
 
 ```

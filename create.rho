@@ -1,9 +1,21 @@
-new stdout(`rho:io:stdout`) in {
-    @"addrecord"!(
-       {
-         "name": "mydomain",
-         "publickey": "azeaze123aze123aze123aze123",
-         "registryaddress": "123456778098"
-       }
+new createCh,
+  lookup(`rho:registry:lookup`),
+  stdout(`rho:io:stdout`) in {
+
+
+  lookup!(`rho:id:krqokythjh9tzg9yr15mh9dst7hndnduabow4kwy6chpjws3xyar75`, *createCh) |
+
+  for(create <- createCh) {
+    create!(
+      {
+        "type": "CREATE",
+        "payload": {
+          "name": "mydomain",
+          "publickey": "499819f316b7fe95d723b232ba430cf7e3b68af155eb8253905d64e1fbace058",
+          "registryaddress": "aaaa"
+        }
+      },
+      *stdout
     )
+  }
 }

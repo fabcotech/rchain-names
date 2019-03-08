@@ -2,7 +2,7 @@
   "name": "rchain-names",
   "version": "0.0.1",
   "description": "Contract that handles name booking/selling on the RChain platform.",
-  "main": "generate.js",
+  "main": "names.rho",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,6 +18,6 @@
   "homepage": "https://github.com/fabcotech/rchain-names#readme",
   "dependencies": {
     "ed25519": "0.0.4",
-    "js-sha3": "^0.8.0"
+    "keccak256": "^1.0.0"
   }
 }

@@ -1,20 +1,28 @@
-new records, update, add, hashdomain, verify, insertArbitrary(`rho:registry:insertArbitrary`), stdout(`rho:io:stdout`) in {
+new records, update, create, entry, hashname, verify, test, entryUriCh, updateUriCh, insertArbitrary(`rho:registry:insertArbitrary`), stdout(`rho:io:stdout`) in {
+
   // Send an initially empty map
-  records!({}) | 
+  records!({}) |
   
+  // Print unforgeable name id
+  stdout!(*records) |
+
   // Update a record
   contract update(record, return) = {
+    stdout!("update") |
     for (current <- records) {
+      stdout!(*current) |
       match *current.contains(*record.get("name")) {
         true => {
-          @"keccak256Hash"!(*record.get("name").toUtf8Bytes(), *hashdomain) |
-          for (hash <- hashdomain) {
-              @"ed25519Verify"!(
-                *hash,
-                *record.get("signature").hexToBytes(),
-                *current.get(*record.get("name")).get("publickey").hexToBytes(),
-                *verify
-              )
+          @"keccak256Hash"!(*record.get("name").toUtf8Bytes(), *hashname) |
+          for (hash <- hashname) {
+            stdout!(*hash) |
+            // TODO improve the verify, not secure at all at the moment
+            @"ed25519Verify"!(
+              *hash,
+              *record.get("signature").hexToBytes(),
+              *current.get(*record.get("name")).get("publickey").hexToBytes(),
+              *verify
+            )
           } |
           for (verified <- verify) {
             match *verified {
@@ -30,15 +38,16 @@ new records, update, add, hashdomain, verify, insertArbitrary(`rho:registry:inse
           }
         }
         false => {
-            return!("error: name not found") |
-            records!(*current)
+          return!("error: name not found") |
+          records!(*current)
         }
       }
     }
   } |
 
-  // Add a record
-  contract add(record, return) = {
+  // create a record
+  contract create(record, return) = {
+    stdout!("create") |
     for (current <- records) {
       match *current.contains(*record.get("name")) {
       true => {
@@ -46,20 +55,25 @@ new records, update, add, hashdomain, verify, insertArbitrary(`rho:registry:inse
         records!(*current)
       }
       false => {
-        return!("success: record " ++ *record.get("name") ++ " added") |
+        return!("success: record " ++ *record.get("name") ++ " created") |
         records!(*current.set(*record.get("name"), *record))
       }}
     }
   } |
 
-  // Register contracts
-  new updateUriCh, addUriCh in {
-    insertArbitrary!(bundle+{*update}, *updateUriCh) |
-    insertArbitrary!(bundle+{*add}, *addUriCh)
+  contract entry(action, return) = {
+    match *action.get("type") {
+      "CREATE" => {
+        create!(*action.get("payload"), *return)
+      }
+      "UPDATE" => {
+        update!(*action.get("payload"), *return)
+      }
+    }
   } |
 
-  // Hack to get the underlying unforgeable names
-  // A nicer way is to use the peviewUnforgeableNames api that @dckc wrote
-  // An even nicer solution would be rearchitecting the node a bit #OutOfScope
-  stdout!([*update, *add])
+  insertArbitrary!(*entry, *entryUriCh) |
+  for (uri <- entryUriCh) {
+    stdout!(*uri)
+  }
 }
