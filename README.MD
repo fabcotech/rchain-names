@@ -80,18 +80,19 @@ npm i
 node generate.js
 
 # deploy the main names.rho contract
-rnode deploy --phlo-price 1 --phlo-limit 1000 names.rho
+rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key names.rho
 rnode propose
 
 # Note the log that ressembles `rho:id:xxxxxx`, xxxxxxxx is the registry entry point
 # Now edit the update.rho and create.rho files so they point to the right registry address
+# replace "rho:id:yyyyyy" by "rho:id:xxxxxx" in those two files
 
 # Create a record
-rnode deploy --phlo-price 1 --phlo-limit 1000 create.rho
+rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key create.rho
 rnode propose
 
 # Update a record
-rnode deploy --phlo-price 1 --phlo-limit 1000 update.rho
+rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key update.rho
 rnode propose
 
 # You just created a record and updated it so it points to another registry address (bbbb)

@@ -3,7 +3,6 @@ new records, update, create, entry, hashname, verify, test, entryUriCh, updateUr
   // Send an initially empty map
   records!({}) |
   
-  // Print unforgeable name id
   stdout!(*records) |
 
   // Update a record
