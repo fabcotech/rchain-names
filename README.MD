@@ -63,22 +63,11 @@ Every idea/proposition is welcome
 
 ### Setup
 
-You can easily generate contracts for a given name, this repository provides a quick way to do it with node JS.
+Of course you have to have a private/public key pair, and you have to know the unforgeable name you want to associate your name to. We also consider that you have a running rnode instance.
 
-Of course you have to have a private/public key pair, and you have to know the registry address you want to associate your name to. We also consider that you have a running rnode instance.
-
-This setup has been done with rnode 0.8.3
+This setup has been testes with rnode 0.9.12
 
 ```
-# install dependencies
-npm i
-
-# Now you can edit the variables on top of generate.js file
-# change the values with the one you want
-
-# then generate the contracts
-node generate.js
-
 # deploy the main names.rho contract
 rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key names.rho
 rnode propose
