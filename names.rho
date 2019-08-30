@@ -12,29 +12,8 @@ new records, update, create, entry, hashname, verify, test, entryUriCh, updateUr
       stdout!(*current) |
       match *current.contains(*record.get("name")) {
         true => {
-          @"keccak256Hash"!(*record.get("name").toUtf8Bytes(), *hashname) |
-          for (hash <- hashname) {
-            stdout!(*hash) |
-            // TODO improve the verify, not secure at all at the moment
-            @"ed25519Verify"!(
-              *hash,
-              *record.get("signature").hexToBytes(),
-              *current.get(*record.get("name")).get("publickey").hexToBytes(),
-              *verify
-            )
-          } |
-          for (verified <- verify) {
-            match *verified {
-              true => {
-                return!("success: record updated") |
-                records!(*current.set(*record.get("name"), *record))
-              }
-              false => {
-                return!("error: invalid signature") |
-                records!(*current)
-              }
-            }
-          }
+          return!("success: record updated") |
+          records!(*current.set(*record.get("name"), *record))
         }
         false => {
           return!("error: name not found") |
@@ -72,7 +51,11 @@ new records, update, create, entry, hashname, verify, test, entryUriCh, updateUr
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
+
   for (uri <- entryUriCh) {
-    stdout!(*uri)
+    stdout!({
+      "registry_uri": *uri,
+      "unforgeable_name": *records
+    })
   }
 }

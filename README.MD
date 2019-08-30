@@ -9,8 +9,8 @@ The values stored in this contract are an array of Records.
 A Record is an rholang Map containing the following keys:
 
 - `name` (string): from 1 to 32 characters that only contains lowcase latin characters (no accent) and numbers from 0 to 9. Also it must start with a letter.
-- `publickey` (string): ED25519 (native algo for rchain) public key of the owner of the name, if not provided it will be the public key of the issuer of the transaction.
-- `registryaddress` (string): optional key that indicate a registry address some applications (Dappy for example) might look at to load some stuff. This allows to directly link some data to a given name and a given public key.
+- `public_key` (string): ED25519 (native algo for rchain) public key of the owner of the name, if not provided it will be the public key of the issuer of the transaction.
+- `unforgeable_name` (string): optional key that indicate an unforgeable name id, some applications (Dappy for example) might look at to load some stuff. This allows to directly link some data to a given name and a given public key.
 - `locked` (boolean): wether or not this record is frozen forever and will never be updated/deleted. Only available for 16 or more characters long names.
 
 There are approximately 6E46 possible names to own, about E37 (10 with 37 zeros behind) for every currently living human.
@@ -95,6 +95,6 @@ rnode propose
 rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key update.rho
 rnode propose
 
-# You just created a record and updated it so it points to another registry address (bbbb)
+# You just created a record and updated it so it points to another unforgeable name (bbbb)
 
 ```
