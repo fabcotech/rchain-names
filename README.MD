@@ -9,8 +9,8 @@ The values stored in this contract are an array of Records.
 A Record is an rholang Map containing the following keys:
 
 - `name` (string): from 1 to 32 characters that only contains lowcase latin characters (no accent) and numbers from 0 to 9. Also it must start with a letter.
-- `public_key` (string): ED25519 (native algo for rchain) public key of the owner of the name, if not provided it will be the public key of the issuer of the transaction.
-- `unforgeable_name` (string): optional key that indicate an unforgeable name id, some applications (Dappy for example) might look at to load some stuff. This allows to directly link some data to a given name and a given public key.
+- `public_key` (string): secp256k1 (native algo for rchain) public key of the owner of the name, it must match the public key of the deployer.
+- `unforgeable_name` (string): optional key that indicate an unforgeable name id. On the RChain platform, the unforgeable name id is a unique ID that can point to any kind of data.
 - `locked` (boolean): wether or not this record is frozen forever and will never be updated/deleted. Only available for 16 or more characters long names.
 
 There are approximately 6E46 possible names to own, about E37 (10 with 37 zeros behind) for every currently living human.
@@ -21,14 +21,14 @@ The owner of a Record (the person/organization who possesses the private key tha
 
 - Delete the record : it becomes available to buy for anyone.
 - Change the publickey : eventually to sell/give the name to someone else.
+- Change the unforgeable name id. (although it is wiser to update the `unforgeable_name_id` data directly, rathre than update the record).
 - Lock the record: the record is locked forever, it cannot be changed by anyone, neither the owner of the private key neither the issuer of the contract.
-- Remove or edit the registry address.
 
 ### Expiration policy
 
-Just like for domain names with the internet, an expiration system should exist so I cannot book some cool domains forever without paying for it.
+Just like for domain names with the internet, an expiration system should exist so one cannot book some cool domains forever without paying for it.
 
-- Some applications require a name to be persistent/eternal, this feature will be propose for names that are 16 characters long or more, a market can exist for less long names (the majority of them), and so they cannot be booked forever and for just few REVS or dollars.
+- Some applications require a name to be persistent/eternal, this feature will be propose for names that are 16 characters long or more, a market will exist for less long names (the majority of them), and so they cannot be booked forever and for just few REVS or dollars.
 - Other names should have a quite long expiration period (2 years, 3 years ?) so it is not as stressfull to deal with as domain names currently.
 
 ### Pricing policy
@@ -45,11 +45,13 @@ A proposition:
 - 2\$ for 8-12 characters long names.
 - 1\$ for 12-32 characters long names.
 
-- 1\$ to lock a record.
+- 1\$ to lock a record (that has 16 characters or more).
 
 #### Where should these REVS go ?
 
-Good question, should they be burned ? should they be controlled by an independant organization ? Or simply sent to the validator that validated the last block.
+This contract has been primarly written to work with a Dappy network. The purchase of the names is a key part of the Dappy ecosystem, therefore under Dappy rules, REVs that come from name purchases will be equally divided between the members of the Dappy network. This creates an economic incentive for Dappy network members to follow the protocol and maintain strong infrastructure.
+
+Nevertheless you are free to deploy this records contract and use it the way you want.
 
 #### Prevent "yahoo" or "mozilla" from being bought by random persons
 
@@ -57,9 +59,9 @@ It could be a cool idea to forbid anyone from buying one of the 10 000 more freq
 
 #### Handle dollar/REVS rate fluctuations
 
-Since the prices will be expressed in REVS, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars.
+You are free to express price in raw REVs. Under a Dappy network, we need to have a mapping to some major fiat currency rate (dollar or euro) so the price is generally stable from an outside point of view.
 
-Every idea/proposition is welcome
+The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars.
 
 ### Setup
 
