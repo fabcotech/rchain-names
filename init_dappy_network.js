@@ -262,7 +262,8 @@ const main = async () => {
   );
   log(
     "DAPPY_NODES_REGISTRY_URI :         " +
-      nodesDeployJsObject.registry_uri.replace("rho:id:", "")
+      nodesDeployJsObject.registry_uri.replace("rho:id:", "") +
+      "\n"
   );
 };
 

@@ -4,6 +4,27 @@ The `names.rho` file is a DNS-like record. Anyone can buy name, and link it to a
 
 The `nodes.rho` file is the record on chain that stores all the nodes responsible for a decentralized Dappy network. Right now it is the deployer of the smart-contract that has the right to add or remove network members. Eventually it will be a vote based mechanisme later.
 
+### Setup
+
+Of course you have to have a private/public key pair, and you have to know the unforgeable name you want to associate your name to. We also consider that you have a running rnode instance.
+
+This setup has been testes with rnode 0.9.15
+
+The simplest way is to use the node JS script that will deploy `names.rho` + `nodes.rho`.
+
+Copy the .env.example file to .env, eventually replace with correct port/host values.
+
+Execute script :
+
+**Careful** : There is a 20 000 phlo limit hardcoded
+
+```
+npm i
+node init_dappy_network.js --private-key PRIVATE_KEY --public-key PUBLIC_KEY
+```
+
+Now that you have deployed the two init files, anyone is able to add a name, and you only is able to add/remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (outputed from the preceding script).
+
 ### How a name is represented onchain
 
 The values stored in this contract are an array of Records.
@@ -63,25 +84,4 @@ It could be a cool idea to forbid anyone from buying one of the 10 000 more freq
 
 You are free to express price in raw REVs. Under a Dappy network, we need to have a mapping to some major fiat currency rate (dollar or euro) so the price is generally stable from an outside point of view.
 
-The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars.
-
-### Setup
-
-Of course you have to have a private/public key pair, and you have to know the unforgeable name you want to associate your name to. We also consider that you have a running rnode instance.
-
-This setup has been testes with rnode 0.9.15
-
-The simplest way is to use the node JS script that will deploy `names.rho` + `nodes.rho`.
-
-Copy the .env.example file to .env, eventually replace with correct port/host values.
-
-Execute script :
-
-**Careful** : There is a 20 000 phlo limit hardcoded
-
-```
-npm i
-node init_dappy_network.js --private-key PRIVATE_KEY --public-key PUBLIC_KEY
-```
-
-Now that you have deployed the two init files, you are able to add a name, add a dappy nod, remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (outputed from the preceding script).
+The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars
