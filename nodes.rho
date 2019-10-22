@@ -16,10 +16,6 @@ new
 in {
 
   deployerIdCh!(*deployerId) |
-  stdout!(*deployerId) |
-  for (did <- deployerId) {
-    stdout!(*did)
-  } |
 
   // Send initial value
   nodes!({
@@ -51,78 +47,24 @@ eWRmuLF82/Qjt1mijECaI/x1K4vuwEZmnXKZGgHngQAad1A53cNQ
       }
   }) |
   
-
-
-  // Update a node
-  contract remove(node, return) = {
-    stdout!("remove") |
-    for (current <- nodes) {
-      stdout!(*current) |
-      match *current.contains(*node.get("url")) {
-        true => {
-          @"keccak256Hash"!(*node.get("url").toUtf8Bytes(), *hashname) |
-          for (hash <- hashname) {
-            return!("success: node updated") |
-            nodes!(*current.set(*node.get("url"), *node))
-            // TODO improve the verify, not secure at all at the moment
-            // @"ed25519Verify"!(
-            //  *hash,
-            //  *node.get("signature").hexToBytes(),
-            //  *current.get(*node.get("name")).get("publickey").hexToBytes(),
-            //  *verify
-            //)
-          } |
-          for (verified <- verify) {
-            match *verified {
-              true => {
-                return!("success: node updated") |
-                nodes!(*current.set(*node.get("url"), *node))
-              }
-              false => {
-                return!("error: invalid signature") |
-                nodes!(*current)
-              }
-            }
-          }
-        }
-        false => {
-          return!("error: name not found") |
-          nodes!(*current)
-        }
-      }
-    }
-  } |
-
   // create a node
   contract add(node, return) = {
-    stdout!("add") |
-    for (@ownerDeployerId <- deployerIdCh) {
-      match *deployerId {
-        ownerDeployerId => {
-          stdout!("MATCH") |
-          for (current <- nodes) {
-            match *current.contains(*node.get("url")) {
-              true => {
-                return!("error: url " ++ *node.get("url") ++ " already taken") |
-                nodes!(*current)
-              }
-              false => {
-                return!("success: node " ++ *node.get("url") ++ " created") |
-                nodes!(*current.set(*node.get("url"), *node))
-              }
-            }
-          }
+    stdout!("adding node") |
+    for (current <- nodes) {
+      match *current.contains(*node.get("url")) {
+        true => {
+          return!("error: url " ++ *node.get("url") ++ " already taken") |
+          nodes!(*current)
         }
-        _ => {
-          return!("error: deployerId does not match with ownerDeployerId")
+        false => {
+          return!("success: node " ++ *node.get("url") ++ " created") |
+          nodes!(*current.set(*node.get("url"), *node))
         }
       }
     }
   } |
 
   contract entry(action, return) = {
-    stdout!(*action) |
-    stdout!(*nodes) |
     match *action.get("type") {
       "ADD" => {
         add!(*action.get("payload"), *return)
@@ -136,10 +78,6 @@ eWRmuLF82/Qjt1mijECaI/x1K4vuwEZmnXKZGgHngQAad1A53cNQ
   insertArbitrary!(*entry, *entryUriCh) |
   
   for (uri <- entryUriCh) {
-    stdout!({
-      "registry_uri": *uri,
-      "unforgeable_name": *nodes
-    }) |
     basket!({
       "registry_uri": *uri,
       "unforgeable_name": *nodes

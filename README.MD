@@ -12,11 +12,11 @@ This setup has been testes with rnode 0.9.15
 
 The simplest way is to use the node JS script that will deploy `names.rho` + `nodes.rho`.
 
-Copy the .env.example file to .env, eventually replace with correct port/host values.
+Copy the `.env.example` file to `.env`, eventually replace with correct port/host values.
 
 Execute script :
 
-**Careful** : There is a 20 000 phlo limit hardcoded
+**Careful** : There is a 30 000 phlo limit hardcoded
 
 ```
 npm i

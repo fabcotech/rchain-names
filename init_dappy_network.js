@@ -13,7 +13,7 @@ const main = async () => {
   const publicKey = getProcessArgv("--public-key");
   const privateKey = getProcessArgv("--private-key");
 
-  let timestamp = new Date().valueOf();
+  const timestamp = new Date().valueOf();
 
   if (!publicKey || !privateKey) {
     log("Please provide --private-key and --public-key cli arguments");
@@ -32,7 +32,7 @@ const main = async () => {
     protoLoader
   );
 
-  const phloLimit = 20000;
+  const phloLimit = 30000;
 
   log("host : " + process.env.HOST);
   log("port : " + process.env.PORT);
@@ -145,14 +145,14 @@ const main = async () => {
 
   // NODES
 
-  timestamp = new Date().valueOf();
+  const timestamp2 = new Date().valueOf();
 
   let privateNamePreviewResponse2;
   try {
     privateNamePreviewResponse2 = await rchainToolkit.grpc.previewPrivateNames(
       {
         user: Buffer.from(publicKey, "hex"),
-        timestamp: timestamp,
+        timestamp: timestamp2,
         nameQty: 1
       },
       grpcClient
@@ -176,7 +176,7 @@ const main = async () => {
   const term2 = fs.readFileSync("./nodes.rho", "utf8");
   const deployData2 = await rchainToolkit.utils.getDeployData(
     "secp256k1",
-    timestamp,
+    timestamp2,
     term2,
     privateKey,
     publicKey,
@@ -213,7 +213,7 @@ const main = async () => {
   });
 
   const unforgeableNameQuery2 = buildUnforgeableNameQuery(
-    unforgeableNameFromNode
+    unforgeableNameFromNode2
   );
 
   let listenForDataAtNameResponse2;
