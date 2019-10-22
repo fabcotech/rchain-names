@@ -1,0 +1,42 @@
+new createCh,
+  lookup(`rho:registry:lookup`),
+  stdout(`rho:io:stdout`) in {
+
+
+  lookup!(`rho:id:URI`, *createCh) |
+
+  for(create <- createCh) {
+    create!(
+      {
+        "type": "ADD",
+        "payload": {
+          "url": "localhost:3004",
+          "name": "local node",
+          "contact": "hey@joe.com",
+          "location": "Toulouse, fr",
+          "cert": "-----BEGIN CERTIFICATE-----
+MIIDUzCCAjugAwIBAgIUHk9Ihr6/NmSAWxovjsua5AVC5zwwDQYJKoZIhvcNAQEL
+BQAwOTELMAkGA1UEBhMCRlIxFjAUBgNVBAMMDWxvY2FsaG9zdC5jb20xEjAQBgNV
+BAoMCU15Q29tcGFueTAeFw0xOTEwMjExNzIyMDVaFw0yMDEwMjAxNzIyMDVaMDkx
+CzAJBgNVBAYTAkZSMRYwFAYDVQQDDA1sb2NhbGhvc3QuY29tMRIwEAYDVQQKDAlN
+eUNvbXBhbnkwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCj+mH8lf69
+3aDRE5RZiPWGvq3UXNV13J2SYKVqp6pNz4GInoL8gBnT+jROW5R3uQUl46ds61l+
+var3IrlEJ6Qm1qdHYLPvGR0th7enASoYWAOJK101TVY7iusc2MIPzvndnoY0zTpz
+lA3w63ISNQUnId2xUF0gcKOVJnuGb4F3oOD+lGAbCyZu78f0S1nxa+Ma7Zw1yW9y
+BbbJ9Jk/ruQJ2yvFHXwGuXJfgGQBUl9lv6JONXEcYfaazunlRTGEn1sOH3CnEzw8
+m3UfrpGFBs2k9+IA4X58aDnFK/aB6I9qrUPSF+DFWG6lEprGWXL7Hk7snwox9h4H
+6AXlx0UBpoKLAgMBAAGjUzBRMB0GA1UdDgQWBBR05I0Qkt1X71196HWpzUG+cA5k
+XTAfBgNVHSMEGDAWgBR05I0Qkt1X71196HWpzUG+cA5kXTAPBgNVHRMBAf8EBTAD
+AQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBcPiJ8Q/Z373Y9k9PaW/GLC+sPzjxC0cOL
++AHq/mynBY8V/ezoXe78lRU+MknqNMwxWM9a+pfiOCqgvTUyc+8dyKDFSNLl3xvQ
+h/Br4sFR49UxX7PXQwfZ+jPEkUjtCXzfX/8EdDecDesb3oYP1pKBUnPc7XoauXOX
+3btlMV3xGnccqAyhUL9rsAhozT0rwRQC6yk8AYvphOhPbyX7uB2fa0z/TrsZVbjR
+wDe9EiKwGjspVstjvj0kx3UG7HnS5BHhQPPr4QUx6DgnSL6fvqkpv6Aq2ORskIf0
+eWRmuLF82/Qjt1mijECaI/x1K4vuwEZmnXKZGgHngQAad1A53cNQ
+-----END CERTIFICATE-----"
+        }
+      },
+      *stdout
+    )
+  }
+}

@@ -1,3 +1,4 @@
 create-name.rho
 update-name.rho
 node_modules
+.env

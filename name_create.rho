@@ -2,8 +2,7 @@ new createCh,
   lookup(`rho:registry:lookup`),
   stdout(`rho:io:stdout`) in {
 
-
-  lookup!(`rho:id:8d69ai4xdhiykkonc68499z8pkonzgi4yxw7wy65ksnxrzrrbf6duo`, *createCh) |
+  lookup!(`rho:id:URI`, *createCh) |
 
   for(create <- createCh) {
     create!(
@@ -11,7 +10,7 @@ new createCh,
         "type": "CREATE",
         "payload": {
           "name": "coucou",
-          "public_key": "499819f316b7fe95d723b232ba430cf7e3b68af155eb8253905d64e1fbace058",
+          "public_key": "04b4429bf26f8fc6609ed425fa9c724719c3c9930491e3d31dfaee34fe704ac3e599a9c4b49708acf5194f6bb4f6e68d00f7552ba665d7b9da0764f711086d8d0c",
           "unforgeable_name": "9376f5ab255c23ab4a5c3a3ccad54910ba089d6386ba5bf69fb2da42f71b2127"
         }
       },

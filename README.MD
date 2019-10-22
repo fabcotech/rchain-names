@@ -1,6 +1,8 @@
-Contract that handles name booking/selling on the RChain platform.
+Rholang code for managing names records and nodes on a decentralized Dappy network.
 
-The main file is `names.rho`.
+The `names.rho` file is a DNS-like record. Anyone can buy name, and link it to an unforgeable name, under the Dappy system, this unforgeable name must point to a file that has been uploaded to the blockchain. See [dappy-cli](https://github.com/fabcotech/dappy-cli).
+
+The `nodes.rho` file is the record on chain that stores all the nodes responsible for a decentralized Dappy network. Right now it is the deployer of the smart-contract that has the right to add or remove network members. Eventually it will be a vote based mechanisme later.
 
 ### How a name is represented onchain
 
@@ -67,25 +69,19 @@ The prices on chain can only be expressed in REVs, their will be some kind of th
 
 Of course you have to have a private/public key pair, and you have to know the unforgeable name you want to associate your name to. We also consider that you have a running rnode instance.
 
-This setup has been testes with rnode 0.9.12
+This setup has been testes with rnode 0.9.15
+
+The simplest way is to use the node JS script that will deploy `names.rho` + `nodes.rho`.
+
+Copy the .env.example file to .env, eventually replace with correct port/host values.
+
+Execute script :
+
+**Careful** : There is a 20 000 phlo limit hardcoded
 
 ```
-# deploy the main names.rho contract
-rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key names.rho
-rnode propose
-
-# Note the log that ressembles `rho:id:xxxxxx`, xxxxxxxx is the registry entry point
-# Now edit the update.rho and create.rho files so they point to the right registry address
-# replace "rho:id:yyyyyy" by "rho:id:xxxxxx" in those two files
-
-# Create a record
-rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key create.rho
-rnode propose
-
-# Update a record
-rnode deploy --phlo-price 1 --phlo-limit 10000 --private-key your_private_key update.rho
-rnode propose
-
-# You just created a record and updated it so it points to another unforgeable name (bbbb)
-
+npm i
+node init_dappy_network.js --private-key PRIVATE_KEY --public-key PUBLIC_KEY
 ```
+
+Now that you have deployed the two init files, you are able to add a name, add a dappy nod, remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (outputed from the preceding script).

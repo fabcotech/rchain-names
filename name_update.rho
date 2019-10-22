@@ -2,7 +2,7 @@ new updateCh,
   lookup(`rho:registry:lookup`),
   stdout(`rho:io:stdout`) in {
 
-  lookup!(`rho:id:59h6c3kmhy3couwa6byesuhpbsddzg6osaqhmhhic6fi45spwtoxy8`, *updateCh) |
+  lookup!(`rho:id:URI`, *updateCh) |
 
   for( update <- updateCh) {
     update!(

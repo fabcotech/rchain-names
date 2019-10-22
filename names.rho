@@ -1,9 +1,25 @@
-new records, update, create, entry, hashname, verify, test, entryUriCh, updateUriCh, insertArbitrary(`rho:registry:insertArbitrary`), stdout(`rho:io:stdout`) in {
+new
+  basket,
+  records,
+  update,
+  create,
+  entry,
+  hashname,
+  verify,
+  test,
+  entryUriCh,
+  updateUriCh,
+  insertArbitrary(`rho:registry:insertArbitrary`),
+  stdout(`rho:io:stdout`),
+  params(`rho:deploy:params`),
+  deployerId(`rho:rchain:deployerId`),
+  deployerIdCh
+in {
 
   // Send an initially empty map
   records!({}) |
-  
-  stdout!(*records) |
+
+  deployerIdCh!!(*deployerId) |
 
   // Update a record
   contract update(record, return) = {
@@ -54,6 +70,10 @@ new records, update, create, entry, hashname, verify, test, entryUriCh, updateUr
 
   for (uri <- entryUriCh) {
     stdout!({
+      "registry_uri": *uri,
+      "unforgeable_name": *records
+    }) |
+    basket!({
       "registry_uri": *uri,
       "unforgeable_name": *records
     })
