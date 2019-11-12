@@ -6,20 +6,25 @@ new
   entry,
   hashname,
   verify,
+  payRevPublicKey,
+  payRevReturn,
+  payReturn,
   test,
   entryUriCh,
   updateUriCh,
+  deployerIdCh,
+  revAddrCh,
+  RevVaultCh,
   insertArbitrary(`rho:registry:insertArbitrary`),
   stdout(`rho:io:stdout`),
   params(`rho:deploy:params`),
-  deployerId(`rho:rchain:deployerId`),
-  deployerIdCh
+  RevAddress(`rho:rev:address`),
+  rl(`rho:registry:lookup`)
 in {
 
   // Send an initially empty map
   records!({}) |
 
-  deployerIdCh!!(*deployerId) |
 
   // Update a record
   contract update(record, return) = {
@@ -39,19 +44,83 @@ in {
     }
   } |
 
+  for (@pubKey <= payRevPublicKey; return <= payRevReturn) {
+    RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddrCh) |
+
+    for (@revAddress <- revAddrCh) {
+      stdout!(("REV address for public key", pubKey, "is", revAddress)) |
+
+      rl!(`rho:rchain:revVault`, *RevVaultCh) |
+      for (@(_, RevVault) <- RevVaultCh) {
+
+        match (
+          revAddress,
+          "1111YT4aWjn7nZNi65bTKJF9GEtXL12raZ9GThLHDi5YMxtdiJkpM",
+          1
+        ) {
+          (from, to, amount) => {
+
+            new vaultCh, revVaultkeyCh, deployerId(`rho:rchain:deployerId`) in {
+              @RevVault!("findOrCreate", from, *vaultCh) |
+              @RevVault!("deployerAuthKey", *deployerId, *revVaultkeyCh) |
+              for (@(true, vault) <- vaultCh; key <- revVaultkeyCh) {
+
+                stdout!(("Beginning transfer of ", amount, "REV from", from, "to", to)) |
+
+                new resultCh in {
+                  @vault!("transfer", to, amount, *key, *resultCh) |
+                  for (@result <- resultCh) {
+
+                    stdout!(("Finished transfer of ", amount, "REV to", to, "result was:", result)) |
+
+                    match result {
+                      (true, Nil) => {
+                        stdout!("yes") |
+                        return!(true)
+                      }
+                      _ => {
+                        return!(false)
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } |
+
   // create a record
   contract create(record, return) = {
-    stdout!("create") |
     for (current <- records) {
+      stdout!(*current) |
       match *current.contains(*record.get("name")) {
-      true => {
-        return!("error: name " ++ *record.get("name") ++ " already taken") |
-        records!(*current)
+        true => {
+          stdout!("error: name " ++ *record.get("name") ++ " already taken") |
+          return!("error: name " ++ *record.get("name") ++ " already taken") |
+          records!(*current)
+        }
+        false => {
+          payRevPublicKey!(*record.get("public_key")) |
+          payRevReturn!(*payReturn) |
+          for (a <- payReturn) {
+            match *a {
+              true => {
+                stdout!("success: record " ++ *record.get("name") ++ " created") |
+                return!("success: record " ++ *record.get("name") ++ " created") |
+                records!(*current.set(*record.get("name"), *record))
+              }
+              _ => {
+                stdout!("error: payment failure") |
+                return!("error: payment failure") |
+                records!(*current)
+              }
+            }
+          }
+        }
       }
-      false => {
-        return!("success: record " ++ *record.get("name") ++ " created") |
-        records!(*current.set(*record.get("name"), *record))
-      }}
     }
   } |
 
