@@ -9,17 +9,16 @@ new
   payRevPublicKey,
   payRevReturn,
   payReturn,
-  test,
   entryUriCh,
   updateUriCh,
-  deployerIdCh,
   revAddrCh,
-  RevVaultCh,
+  verifySignatureCh,
+  hashCh,
+  secpVerify(`rho:crypto:secp256k1Verify`),
   insertArbitrary(`rho:registry:insertArbitrary`),
   stdout(`rho:io:stdout`),
-  params(`rho:deploy:params`),
   RevAddress(`rho:rev:address`),
-  rl(`rho:registry:lookup`)
+  blake2b256(`rho:crypto:blake2b256Hash`)
 in {
 
   // Send an initially empty map
@@ -27,59 +26,88 @@ in {
 
 
   // Update a record
-  contract update(record, return) = {
-    stdout!("update") |
-    for (current <- records) {
-      stdout!(*current) |
-      match *current.contains(*record.get("name")) {
+  contract update(@record, return) = {
+    for (@current <<- records) {
+      match current.contains(record.get("name")) {
         true => {
-          return!("success: record updated") |
-          records!(*current.set(*record.get("name"), *record))
+          match current.get(record.get("name")) {
+            currentRecord => {
+              stdout!(currentRecord) |
+              blake2b256!(
+                // has of PUBLIC_KEY
+                currentRecord.get("public_key").toUtf8Bytes(),
+                *hashCh
+              ) |
+              for (@hash <- hashCh) {
+                secpVerify!(
+                  hash,
+                  record.get("signature").hexToBytes(),
+                  currentRecord.get("public_key").hexToBytes(),
+                  *verifySignatureCh
+                ) |
+                for (@result <- verifySignatureCh) {
+                  match result {
+                    true => {
+                      return!(true) |
+                      for (_ <- records) {
+                        records!(current.set(record.get("name"), record))
+                      }
+                    }
+                    false => {
+                      return!("error: signature invalid") |
+                      records!(current)
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
         false => {
           return!("error: name not found") |
-          records!(*current)
+          records!(current)
         }
       }
     }
   } |
 
-  for (@pubKey <= payRevPublicKey; return <= payRevReturn) {
+  for (@pubKey <- payRevPublicKey; return <- payRevReturn) {
     RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddrCh) |
 
     for (@revAddress <- revAddrCh) {
       stdout!(("REV address for public key", pubKey, "is", revAddress)) |
+      new RevVaultCh, rl(`rho:registry:lookup`) in {
+        rl!(`rho:rchain:revVault`, *RevVaultCh) |
+        for (@(_, RevVault) <- RevVaultCh) {
 
-      rl!(`rho:rchain:revVault`, *RevVaultCh) |
-      for (@(_, RevVault) <- RevVaultCh) {
+          match (
+            revAddress,
+            "1111YT4aWjn7nZNi65bTKJF9GEtXL12raZ9GThLHDi5YMxtdiJkpM",
+            1
+          ) {
+            (from, to, amount) => {
 
-        match (
-          revAddress,
-          "1111YT4aWjn7nZNi65bTKJF9GEtXL12raZ9GThLHDi5YMxtdiJkpM",
-          1
-        ) {
-          (from, to, amount) => {
+              new vaultCh, revVaultkeyCh, deployerId(`rho:rchain:deployerId`) in {
+                @RevVault!("findOrCreate", from, *vaultCh) |
+                @RevVault!("deployerAuthKey", *deployerId, *revVaultkeyCh) |
+                for (@(true, vault) <- vaultCh; key <- revVaultkeyCh) {
 
-            new vaultCh, revVaultkeyCh, deployerId(`rho:rchain:deployerId`) in {
-              @RevVault!("findOrCreate", from, *vaultCh) |
-              @RevVault!("deployerAuthKey", *deployerId, *revVaultkeyCh) |
-              for (@(true, vault) <- vaultCh; key <- revVaultkeyCh) {
+                  stdout!(("Beginning transfer of ", amount, "REV from", from, "to", to)) |
 
-                stdout!(("Beginning transfer of ", amount, "REV from", from, "to", to)) |
+                  new resultCh in {
+                    @vault!("transfer", to, amount, *key, *resultCh) |
+                    for (@result <- resultCh) {
 
-                new resultCh in {
-                  @vault!("transfer", to, amount, *key, *resultCh) |
-                  for (@result <- resultCh) {
+                      stdout!(("Finished transfer of ", amount, "REV to", to, "result was:", result)) |
 
-                    stdout!(("Finished transfer of ", amount, "REV to", to, "result was:", result)) |
-
-                    match result {
-                      (true, Nil) => {
-                        stdout!("yes") |
-                        return!(true)
-                      }
-                      _ => {
-                        return!(false)
+                      match result {
+                        (true, Nil) => {
+                          stdout!("yes") |
+                          return!(true)
+                        }
+                        _ => {
+                          return!(result.nth(1))
+                        }
                       }
                     }
                   }
@@ -103,8 +131,12 @@ in {
           records!(*current)
         }
         false => {
-          payRevPublicKey!(*record.get("public_key")) |
-          payRevReturn!(*payReturn) |
+          stdout!("success: record " ++ *record.get("name") ++ " created") |
+          return!("success: record " ++ *record.get("name") ++ " created") |
+          records!(*current.set(*record.get("name"), *record)) |
+          // todo record.get("public_key") must pay 1 REV to create record
+          // payRevPublicKey!(*record.get("public_key")) |
+          // payRevReturn!(*payReturn) |
           for (a <- payReturn) {
             match *a {
               true => {
@@ -124,13 +156,14 @@ in {
     }
   } |
 
-  contract entry(action, return) = {
-    match *action.get("type") {
+  contract entry(@(action, return)) = {
+    stdout!(action) |
+    match action.get("type") {
       "CREATE" => {
-        create!(*action.get("payload"), *return)
+        create!(action.get("payload"), return)
       }
       "UPDATE" => {
-        update!(*action.get("payload"), *return)
+        update!(action.get("payload"), return)
       }
     }
   } |

@@ -1,20 +1,33 @@
 new updateCh,
+  returnCh,
   lookup(`rho:registry:lookup`),
   stdout(`rho:io:stdout`) in {
 
-  lookup!(`rho:id:URI`, *updateCh) |
+  lookup!(`rho:id:uem4gpcm65psuk3q33fnsorfs1xig8rywmta479zp9md6wsz56uc64`, *updateCh) |
 
-  for( update <- updateCh) {
-    update!(
+  for(update <- updateCh) {
+    update!((
       {
         "type": "UPDATE",
         "payload": {
           "name": "hamburger",
-          "public_key": "04b4429bf26f8fc6609ed425fa9c724719c3c9930491e3d31dfaee34fe704ac3e599a9c4b49708acf5194f6bb4f6e68d00f7552ba665d7b9da0764f711086d8d0c",
-          "unforgeable_name": "zougoulou",
+          "servers": [],
+          "public_key": "PUBLIC_KEY",
+          "unforgeable_name": "UNFORGEABLE_NAME",
+          "signature": "SIGNATURE"
         }
       },
-      *stdout
-    )
+      *returnCh
+    )) |
+    for (@res <- returnCh) {
+      match res {
+        true => {
+          stdout!("update succesfull")
+        }
+        _ => {
+          stdout!(res)
+        }
+      }
+    }
   }
 }

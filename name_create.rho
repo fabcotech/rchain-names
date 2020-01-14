@@ -1,21 +1,32 @@
-new createCh,
+new entryCh,
+  returnCh,
   lookup(`rho:registry:lookup`),
   stdout(`rho:io:stdout`) in {
 
-  lookup!(`rho:id:4jstk4uijgeenxysouwd8cgxs5y3og4kzyhyej5ij8kdtneaqu5w7y`, *createCh) |
+  lookup!(`rho:id:j67suao54biw1j7mngoam1pwrci9ffr8dfmrobgpai16njsorfpocz`, *entryCh) |
 
-  for(create <- createCh) {
-    create!(
+  for(entry <- entryCh) {
+    entry!((
       {
         "type": "CREATE",
         "payload": {
-          "name": "coucou",
-          "public_key": "04e49ceaebbf8646e1e04e63ffa41be6724173b0bf1d9ab71f878912d0c3c50b4e68df65e6dd7cd94d0965ac7b2a3464a9f27d6b8ccc5cc30fb2569536c758ffbe",
+          "name": "hamburger",
+          "public_key": "PUBLIC_KEY",
           "servers": [],
-          "unforgeable_name": "9376f5ab255c23ab4a5c3a3ccad54910ba089d6386ba5bf69fb2da42f71b2127"
+          "unforgeable_name": "UNFORGEABLE_NAME"
         }
       },
-      *stdout
-    )
+      *returnCh
+    )) |
+    for (@res <- returnCh) {
+      match res {
+        true => {
+          stdout!("purchase succesfull")
+        }
+        _ => {
+          stdout!(res)
+        }
+      }
+    }
   }
 }
