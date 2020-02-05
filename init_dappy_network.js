@@ -20,10 +20,11 @@ const main = async () => {
     process.exit();
   }
 
-  const grpcClient = await rchainToolkit.grpc.getGrpcDeployClient(
+  const grpcClient = await rchainToolkit.grpc.getClient(
     `${process.env.HOST}:${process.env.PORT}`,
     grpc,
-    protoLoader
+    protoLoader,
+    "deployService"
   );
 
   const grpcProposeClient = await rchainToolkit.grpc.getGrpcProposeClient(
@@ -32,28 +33,31 @@ const main = async () => {
     protoLoader
   );
 
-  const phloLimit = 30000;
+  const phloLimit = 300000;
 
   log("host : " + process.env.HOST);
   log("port : " + process.env.PORT);
+  log("port (HTTP): " + process.env.HTTP_PORT);
   log("port (propose) : " + process.env.PROPOSE_PORT);
   log("publicKey : " + publicKey);
   log("phlo limit : " + phloLimit);
-  log("Deploying ...\n");
+  log("Deploying ...");
+
+  const rnodeHttpUrl = `${process.env.HOST}:${process.env.HTTP_PORT}`;
 
   // =====
   // NAMES
   // =====
 
-  let privateNamePreviewResponse;
+  let prepareDeployResponse;
   try {
-    privateNamePreviewResponse = await rchainToolkit.grpc.previewPrivateNames(
+    prepareDeployResponse = await rchainToolkit.http.prepareDeploy(
+      rnodeHttpUrl,
       {
-        user: Buffer.from(publicKey, "hex"),
+        deployer: publicKey,
         timestamp: timestamp,
         nameQty: 1
-      },
-      grpcClient
+      }
     );
   } catch (err) {
     log("Unable to preview private name");
@@ -61,18 +65,31 @@ const main = async () => {
     process.exit();
   }
 
+  let lastFinalizedBlock;
+  try {
+    lastFinalizedBlock = await rchainToolkit.grpc.lastFinalizedBlock(
+      grpcClient
+    );
+  } catch (err) {
+    log("Unable to get last finalized block");
+    console.log(err);
+    process.exit();
+  }
+
+  const lastFinalizedBlockValue = parseInt(
+    lastFinalizedBlock.blockInfo.blockNumber
+  );
+
   let unforgeableNameFromNode;
   try {
-    unforgeableNameFromNode = rchainToolkit.utils.unforgeableWithId(
-      privateNamePreviewResponse.payload.ids[0]
-    );
+    unforgeableNameFromNode = JSON.parse(prepareDeployResponse).names[0];
   } catch (err) {
     log("Unable to preview private name");
     process.exit();
   }
 
   const term = fs.readFileSync("./names.rho", "utf8");
-  const deployData = await rchainToolkit.utils.getDeployData(
+  const deployOptions = await rchainToolkit.utils.getDeployOptions(
     "secp256k1",
     timestamp,
     term,
@@ -80,15 +97,15 @@ const main = async () => {
     publicKey,
     1,
     phloLimit,
-    -1
+    lastFinalizedBlockValue || -1
   );
 
   try {
-    const deployResponse = await rchainToolkit.grpc.doDeploy(
-      deployData,
-      grpcClient
+    const deployResponse = await rchainToolkit.http.deploy(
+      rnodeHttpUrl,
+      deployOptions
     );
-    if (deployResponse.error) {
+    if (!deployResponse.startsWith('"Success!')) {
       log("Unable to deploy");
       console.log(deployResponse.error.messages);
       process.exit();
@@ -98,6 +115,7 @@ const main = async () => {
     console.log(err);
     process.exit();
   }
+  log("Deployed names.rho");
 
   try {
     await rchainToolkit.grpc.propose({}, grpcProposeClient);
@@ -106,6 +124,9 @@ const main = async () => {
     console.log(err);
     process.exit();
   }
+
+  log("Proposed (1st proposal for names.rho)");
+
   await new Promise(res => {
     setTimeout(res, 2000);
   });
@@ -114,48 +135,41 @@ const main = async () => {
     unforgeableNameFromNode
   );
 
-  let listenForDataAtNameResponse;
+  let dataAtNameResponse;
   try {
-    listenForDataAtNameResponse = await rchainToolkit.grpc.listenForDataAtName(
-      {
-        name: unforgeableNameQuery,
-        depth: 1000
-      },
-      grpcClient
-    );
+    dataAtNameResponse = await rchainToolkit.http.dataAtName(rnodeHttpUrl, {
+      name: unforgeableNameQuery,
+      depth: 1000
+    });
   } catch (err) {
     log("Cannot retreive transaction data");
     console.log(err);
     process.exit();
   }
 
-  const data = rchainToolkit.utils.getValueFromBlocks(
-    listenForDataAtNameResponse.payload.blockInfo
-  );
+  const parsedResponse = JSON.parse(dataAtNameResponse);
+  const data = parsedResponse.exprs[parsedResponse.exprs.length - 1];
 
-  if (!data.exprs.length) {
+  if (!data || !data.expr) {
     log("Transaction data not found");
     process.exit();
-    return;
   }
 
-  const namesDeployJsObject = rchainToolkit.utils.rholangMapToJsObject(
-    data.exprs[0].e_map_body
-  );
+  const namesDeployJsObject = rchainToolkit.utils.rhoValToJs(data.expr);
 
   // NODES
 
   const timestamp2 = new Date().valueOf();
 
-  let privateNamePreviewResponse2;
+  let prepareDeployResponse2;
   try {
-    privateNamePreviewResponse2 = await rchainToolkit.grpc.previewPrivateNames(
+    prepareDeployResponse2 = await rchainToolkit.http.prepareDeploy(
+      rnodeHttpUrl,
       {
-        user: Buffer.from(publicKey, "hex"),
+        deployer: publicKey,
         timestamp: timestamp2,
         nameQty: 1
-      },
-      grpcClient
+      }
     );
   } catch (err) {
     log("Unable to preview private name");
@@ -165,16 +179,14 @@ const main = async () => {
 
   let unforgeableNameFromNode2;
   try {
-    unforgeableNameFromNode2 = rchainToolkit.utils.unforgeableWithId(
-      privateNamePreviewResponse2.payload.ids[0]
-    );
+    unforgeableNameFromNode2 = JSON.parse(prepareDeployResponse2).names[0];
   } catch (err) {
     log("Unable to preview private name");
     process.exit();
   }
 
   const term2 = fs.readFileSync("./nodes.rho", "utf8");
-  const deployData2 = await rchainToolkit.utils.getDeployData(
+  const deployOptions2 = await rchainToolkit.utils.getDeployOptions(
     "secp256k1",
     timestamp2,
     term2,
@@ -182,15 +194,15 @@ const main = async () => {
     publicKey,
     1,
     phloLimit,
-    -1
+    lastFinalizedBlockValue || -1
   );
 
   try {
-    const deployResponse = await rchainToolkit.grpc.doDeploy(
-      deployData2,
-      grpcClient
+    const deployResponse = await rchainToolkit.http.deploy(
+      rnodeHttpUrl,
+      deployOptions2
     );
-    if (deployResponse.error) {
+    if (!deployResponse.startsWith('"Success!')) {
       log("Unable to deploy");
       console.log(deployResponse.error.messages);
       process.exit();
@@ -201,6 +213,8 @@ const main = async () => {
     process.exit();
   }
 
+  log("Deployed nodes.rho");
+
   try {
     await rchainToolkit.grpc.propose({}, grpcProposeClient);
   } catch (err) {
@@ -208,6 +222,8 @@ const main = async () => {
     console.log(err);
     process.exit();
   }
+
+  log("Proposed (2nd proposal for nodes.rho)");
   await new Promise(res => {
     setTimeout(res, 2000);
   });
@@ -216,41 +232,36 @@ const main = async () => {
     unforgeableNameFromNode2
   );
 
-  let listenForDataAtNameResponse2;
+  let dataAtNameResponse2;
   try {
-    listenForDataAtNameResponse2 = await rchainToolkit.grpc.listenForDataAtName(
-      {
-        name: unforgeableNameQuery2,
-        depth: 1000
-      },
-      grpcClient
-    );
+    dataAtNameResponse2 = await rchainToolkit.http.dataAtName(rnodeHttpUrl, {
+      name: unforgeableNameQuery2,
+      depth: 1000
+    });
   } catch (err) {
     log("Cannot retreive transaction data");
     console.log(err);
     process.exit();
   }
 
-  const data2 = rchainToolkit.utils.getValueFromBlocks(
-    listenForDataAtNameResponse2.payload.blockInfo
-  );
+  const parsedResponse2 = JSON.parse(dataAtNameResponse2);
 
-  if (!data2.exprs.length) {
+  const data2 = parsedResponse2.exprs[parsedResponse2.exprs.length - 1];
+
+  if (!data2 || !data2.expr) {
     log("Transaction data not found");
     process.exit();
-    return;
   }
 
-  const nodesDeployJsObject = rchainToolkit.utils.rholangMapToJsObject(
-    data2.exprs[0].e_map_body
-  );
+  const nodesDeployJsObject = rchainToolkit.utils.rhoValToJs(data2.expr);
 
+  console.log(namesDeployJsObject);
   log("Dappy network deployed successfully !");
   log("");
   log("Your Dappy network variables :");
   log(
     "RCHAIN_NAMES_UNFORGEABLE_NAME_ID : " +
-      namesDeployJsObject.unforgeable_name[0].gPrivate
+      namesDeployJsObject.unforgeable_name.UnforgPrivate
   );
   log(
     "RCHAIN_NAMES_REGISTRY_URI :        " +
@@ -258,7 +269,7 @@ const main = async () => {
   );
   log(
     "DAPPY_NODES_UNFORGEABLE_NAME_ID :  " +
-      nodesDeployJsObject.unforgeable_name[0].gPrivate
+      nodesDeployJsObject.unforgeable_name.UnforgPrivate
   );
   log(
     "DAPPY_NODES_REGISTRY_URI :         " +

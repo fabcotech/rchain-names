@@ -11,12 +11,6 @@ module.exports.getProcessArgv = param => {
 // the unforgeable query for dappy-node
 module.exports.buildUnforgeableNameQuery = unforgeableName => {
   return {
-    unforgeables: [
-      {
-        g_private_body: {
-          id: Buffer.from(unforgeableName, "hex")
-        }
-      }
-    ]
+    UnforgPrivate: { data: unforgeableName }
   };
 };
