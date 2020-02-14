@@ -32,7 +32,6 @@ in {
           match *current.get(record.get("name")) {
             currentRecord => {
               blake2b256!(
-                // has of PUBLIC_KEY
                 currentRecord.get("nonce").toUtf8Bytes(),
                 *hashCh
               ) |
