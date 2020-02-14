@@ -4,11 +4,9 @@ The `names.rho` file is a DNS-like record. Anyone can buy name, and link it to a
 
 The `nodes.rho` file is the record on chain that stores all the nodes responsible for a decentralized Dappy network. Right now it is the deployer of the smart-contract that has the right to add or remove network members. Eventually it will be a vote based mechanisme later.
 
-### Setup
+This setup has been testes with rnode 0.9.19. We consider that you can connect to a running rnode instance, and have private/public key pair for deployment.
 
-Of course you have to have a private/public key pair, and you have to know the unforgeable name you want to associate your name to. We also consider that you have a running rnode instance.
-
-This setup has been testes with rnode 0.9.15
+### Setup (Dappy network contracts : names.rho + nodes.rho)
 
 The simplest way is to use the node JS script that will deploy `names.rho` + `nodes.rho`.
 
@@ -23,7 +21,43 @@ npm i
 node init_dappy_network.js --private-key PRIVATE_KEY --public-key PUBLIC_KEY
 ```
 
-Now that you have deployed the two init files, anyone is able to add a name, and you only is able to add/remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (outputed from the preceding script).
+Now that you have deployed the two init files, anyone is able to add a name, and you only is able to add/remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (output from the preceding script).
+
+### Setup (only names.rho)
+
+You can directly deploy the `names.rho` contract with rnode cli, if you deploy it directly you must retreive the registry URI that is logged by rnode.
+
+### Create name
+
+```
+# Generate a random nonce
+node generate_nonce.js
+
+# Update the nonce and other record values in name_create.rho
+# Update the registry URI value in name_create.rho
+
+# Deploy name_create.rho
+
+# "purchase succesfull" should be logged
+```
+
+### Update name
+
+```
+# Generate a random nonce
+node generate_nonce.js
+
+# Generate a signature by referencing the private key and nonce in name_update_generate_signature.js
+node name_update_generate_signature.js
+
+# Update the nonce, signature and other record values in name_update.rho
+
+# Update the registry URI value in name_update.rho (same as in name_create.rho)
+
+# Deploy name_update.rho
+
+# "update succesfull" should be logged
+```
 
 ### How a name is represented onchain
 
@@ -42,10 +76,10 @@ There are approximately 6E46 possible names to own, about E37 (10 with 37 zeros 
 
 The owner of a Record (the person/organization who possesses the private key that corresponds with the public key) can:
 
-- Delete the record : it becomes available to buy for anyone.
-- Change the publickey : eventually to sell/give the name to someone else.
+- Delete the record (not implemented): it becomes available to buy for anyone.
+- Change the publickey: eventually to sell/give the name to someone else.
 - Change the unforgeable name id. (although it is wiser to update the `unforgeable_name_id` data directly, rathre than update the record).
-- Lock the record: the record is locked forever, it cannot be changed by anyone, neither the owner of the private key neither the issuer of the contract.
+- Lock the record (not implemented): the record is locked forever, it cannot be changed by anyone, neither the owner of the private key neither the issuer of the contract.
 
 ### Expiration policy
 

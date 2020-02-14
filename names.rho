@@ -24,18 +24,16 @@ in {
   // Send an initially empty map
   records!({}) |
 
-
   // Update a record
   contract update(@record, return) = {
-    for (@current <<- records) {
-      match current.contains(record.get("name")) {
+    for (current <- records) {
+      match *current.contains(record.get("name")) {
         true => {
-          match current.get(record.get("name")) {
+          match *current.get(record.get("name")) {
             currentRecord => {
-              stdout!(currentRecord) |
               blake2b256!(
                 // has of PUBLIC_KEY
-                currentRecord.get("public_key").toUtf8Bytes(),
+                currentRecord.get("nonce").toUtf8Bytes(),
                 *hashCh
               ) |
               for (@hash <- hashCh) {
@@ -49,13 +47,11 @@ in {
                   match result {
                     true => {
                       return!(true) |
-                      for (_ <- records) {
-                        records!(current.set(record.get("name"), record))
-                      }
+                      records!(*current.delete(record.get("name")).set(record.get("name"), record))
                     }
                     false => {
                       return!("error: signature invalid") |
-                      records!(current)
+                      records!(*current)
                     }
                   }
                 }
@@ -65,7 +61,7 @@ in {
         }
         false => {
           return!("error: name not found") |
-          records!(current)
+          records!(*current)
         }
       }
     }
@@ -123,25 +119,24 @@ in {
   // create a record
   contract create(record, return) = {
     for (current <- records) {
-      stdout!(*current) |
       match *current.contains(*record.get("name")) {
         true => {
-          stdout!("error: name " ++ *record.get("name") ++ " already taken") |
           return!("error: name " ++ *record.get("name") ++ " already taken") |
           records!(*current)
         }
         false => {
-          stdout!("success: record " ++ *record.get("name") ++ " created") |
-          return!("success: record " ++ *record.get("name") ++ " created") |
+          // todo remove 2 following lines
+          return!(true) |
           records!(*current.set(*record.get("name"), *record)) |
           // todo record.get("public_key") must pay 1 REV to create record
+          // todo uncomment 2 following lines
           // payRevPublicKey!(*record.get("public_key")) |
           // payRevReturn!(*payReturn) |
           for (a <- payReturn) {
             match *a {
               true => {
                 stdout!("success: record " ++ *record.get("name") ++ " created") |
-                return!("success: record " ++ *record.get("name") ++ " created") |
+                return!(true) |
                 records!(*current.set(*record.get("name"), *record))
               }
               _ => {
