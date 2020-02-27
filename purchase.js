@@ -5,7 +5,7 @@ const rchainToolkit = require("rchain-toolkit");
 const uuidv4 = require("uuid/v4");
 require("dotenv").config();
 
-const { getProcessArgv, buildUnforgeableNameQuery, log } = require("./utils");
+const { getProcessArgv, log } = require("./utils");
 const main = async () => {
   const privateKey = getProcessArgv("--private-key");
   const registryUri = getProcessArgv("--registry-uri-entry");

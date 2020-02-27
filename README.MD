@@ -77,8 +77,8 @@ The values stored in this contract are an array of Records.
 A Record is an rholang Map containing the following keys:
 
 - `name` (string): from 1 to 32 characters that only contains lowcase latin characters (no accent) and numbers from 0 to 9. Also it must start with a letter.
-- `public_key` (string): secp256k1 (native algo for rchain) public key of the owner of the name, it must match the public key of the deployer.
-- `unforgeable_name` (string): optional key that indicate an unforgeable name id. On the RChain platform, the unforgeable name id is a unique ID that can point to any kind of data.
+- `publicKey` (string): secp256k1 (native algo for rchain) public key of the owner of the name, it must match the public key of the deployer.
+- `address` (string): optional key that indicate an address. On the RChain platform, the address must be construced following the files-module paradigm (**registry_uri.file_id**). See https://github.com/fabcotech/rholang-files-module .
 - `locked` (boolean): wether or not this record is frozen forever and will never be updated/deleted. Only available for 16 or more characters long names.
 
 There are approximately 6E46 possible names to own, about E37 (10 with 37 zeros behind) for every currently living human.

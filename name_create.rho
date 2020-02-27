@@ -11,9 +11,9 @@ new entryCh,
         "type": "CREATE",
         "payload": {
           "name": "hamburger",
-          "public_key": "0442b519a340fb170bf2ee3173080f5456c22b5d7b765f8fd0744b5a692f183042a733b59f03cd74eb5a154eb7929bb7b29af4c5dfe81edfa22e1b74fb7642d777",
+          "publicKey": "0442b519a340fb170bf2ee3173080f5456c22b5d7b765f8fd0744b5a692f183042a733b59f03cd74eb5a154eb7929bb7b29af4c5dfe81edfa22e1b74fb7642d777",
           "servers": [],
-          "unforgeable_name": "UNFORGEABLE_NAME",
+          "address": "ADDRESS",
           "nonce": "745f0edf89514bef8e32921fa4844f35"
         }
       },

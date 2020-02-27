@@ -1,6 +1,6 @@
 {
   "name": "dappy",
-  "public_key": "aaa",
+  "publicKey": "aaa",
   "servers": [
     {
       "ip": "46.101.147.28",

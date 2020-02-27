@@ -40,7 +40,7 @@ in {
                 secpVerify!(
                   hash,
                   record.get("signature").hexToBytes(),
-                  currentRecord.get("public_key").hexToBytes(),
+                  currentRecord.get("publicKey").hexToBytes(),
                   *verifySignatureCh
                 ) |
                 for (@result <- verifySignatureCh) {
@@ -128,9 +128,9 @@ in {
           // todo remove 2 following lines
           return!(true) |
           records!(*current.set(*record.get("name"), *record)) |
-          // todo record.get("public_key") must pay 1 REV to create record
+          // todo record.get("publicKey") must pay 1 REV to create record
           // todo uncomment 2 following lines
-          // payRevPublicKey!(*record.get("public_key")) |
+          // payRevPublicKey!(*record.get("publicKey")) |
           // payRevReturn!(*payReturn) |
           for (a <- payReturn) {
             match *a {
