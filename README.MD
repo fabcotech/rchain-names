@@ -18,7 +18,7 @@ Execute script :
 
 ```
 npm i
-node init_dappy_network.js --private-key PRIVATE_KEY --public-key PUBLIC_KEY
+node init_dappy_network.js --private-key PRIVATE_KEY
 ```
 
 Now that you have deployed the two init files, anyone is able to add a name, and you only is able to add/remove a dappy node. Simply check the `name_create.rho`,`name_update.rho`, `node_add.rho`, `node_remove.rho`, replace with the correct URI value (output from the preceding script).
@@ -27,7 +27,18 @@ Now that you have deployed the two init files, anyone is able to add a name, and
 
 You can directly deploy the `names.rho` contract with rnode cli, if you deploy it directly you must retreive the registry URI that is logged by rnode.
 
-### Create name
+### Create/purchase name
+
+#### With node JS
+
+```
+# Update the name.json file so it describes your name
+# You can look at name.json.dapp.example and name.json.ipapp.example files
+
+node purchase.js --private-key PRIVATE_KEY --registry-uri-entry ccc
+```
+
+#### With rnode CLI
 
 ```
 # Generate a random nonce
@@ -39,11 +50,10 @@ node generate_nonce.js
 # Deploy name_create.rho
 
 # "purchase succesfull" should be logged
-```
-
 ### Update name
 
 ```
+
 # Generate a random nonce
 node generate_nonce.js
 
@@ -57,6 +67,7 @@ node name_update_generate_signature.js
 # Deploy name_update.rho
 
 # "update succesfull" should be logged
+
 ```
 
 ### How a name is represented onchain
@@ -119,3 +130,4 @@ It could be a cool idea to forbid anyone from buying one of the 10 000 more freq
 You are free to express price in raw REVs. Under a Dappy network, we need to have a mapping to some major fiat currency rate (dollar or euro) so the price is generally stable from an outside point of view.
 
 The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars
+```

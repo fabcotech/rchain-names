@@ -10,6 +10,7 @@ new
   payRevReturn,
   payReturn,
   entryUriCh,
+  recordsUriCh,
   updateUriCh,
   revAddrCh,
   verifySignatureCh,
@@ -163,15 +164,18 @@ in {
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
+  insertArbitrary!(*records, *recordsUriCh) |
 
-  for (uri <- entryUriCh) {
+  for (entryUri <- entryUriCh; recordsUri <- recordsUriCh) {
     stdout!({
-      "registry_uri": *uri,
-      "unforgeable_name": *records
+      "entryRegistryUri": *entryUri,
+      "recordsRegistryUri": *recordsUri,
+      "recordsUnforgeableName": *records
     }) |
     basket!({
-      "registry_uri": *uri,
-      "unforgeable_name": *records
+      "entryRegistryUri": *entryUri,
+      "recordsRegistryUri": *recordsUri,
+      "recordsUnforgeableName": *records
     })
   }
 }

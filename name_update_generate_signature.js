@@ -24,7 +24,6 @@ const blake2bHash = blake2b(uInt8Array, 0, 32);
 
 const signature = rchainToolkit.utils.signSecp256k1(blake2bHash, PRIVATE_KEY);
 
-// should be dded1a9cd2bb6dc84e672f46b90d6e5c519a11080cb012ec69dcb9218ed2626b
 const signatureHex = Buffer.from(signature).toString("hex");
 
 console.log("SIGNATURE :", signatureHex);

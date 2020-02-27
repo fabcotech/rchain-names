@@ -8,6 +8,7 @@ new
   verify,
   test,
   entryUriCh,
+  nodesUriCh,
   updateUriCh,
   deployerIdCh,
   insertArbitrary(`rho:registry:insertArbitrary`),
@@ -64,23 +65,30 @@ eWRmuLF82/Qjt1mijECaI/x1K4vuwEZmnXKZGgHngQAad1A53cNQ
     }
   } |
 
-  contract entry(action, return) = {
-    match *action.get("type") {
+  for (@(action, return) <= entry) {
+    match action.get("type") {
       "ADD" => {
-        add!(*action.get("payload"), *return)
+        add!(action.get("payload"), return)
       }
       "REMOVE" => {
-        remove!(*action.get("payload"), *return)
+        remove!(action.get("payload"), return)
       }
     }
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
+  insertArbitrary!(*nodes, *nodesUriCh) |
   
-  for (uri <- entryUriCh) {
+  for (entryUri <- entryUriCh; nodesUri <- nodesUriCh) {
     basket!({
-      "registry_uri": *uri,
-      "unforgeable_name": *nodes
+      "entryRegistryUri": *entryUri,
+      "nodesRegistryUri": *nodesUri,
+      "nodesUnforgeableName": *nodes
+    }) |
+    stdout!({
+      "entryRegistryUri": *entryUri,
+      "nodesRegistryUri": *nodesUri,
+      "nodesUnforgeableName": *nodes
     })
   }
 }

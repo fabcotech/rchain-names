@@ -1,6 +1,6 @@
 {
   "name": "rchain-names",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Rholang code for managing names records and nodes on a decentralized Dappy network.",
   "main": "names.rho",
   "scripts": {
@@ -19,9 +19,11 @@
   "dependencies": {
     "@grpc/grpc-js": "^0.6.9",
     "@grpc/proto-loader": "^0.5.2",
+    "base-58": "0.0.1",
     "blakejs": "^1.1.0",
     "dotenv": "^8.2.0",
-    "rchain-toolkit": "0.2.1",
+    "js-sha3": "^0.8.0",
+    "rchain-toolkit": "0.2.3",
     "uuid": "3.4.0"
   }
 }

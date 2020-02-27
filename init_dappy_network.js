@@ -4,46 +4,60 @@ const protoLoader = require("@grpc/proto-loader");
 const rchainToolkit = require("rchain-toolkit");
 require("dotenv").config();
 
-const { getProcessArgv, buildUnforgeableNameQuery } = require("./utils");
+const { getProcessArgv, buildUnforgeableNameQuery, log } = require("./utils");
 const main = async () => {
-  const log = a => {
-    console.log(new Date().toISOString(), a);
-  };
-
-  const publicKey = getProcessArgv("--public-key");
   const privateKey = getProcessArgv("--private-key");
 
   const timestamp = new Date().valueOf();
 
-  if (!publicKey || !privateKey) {
+  if (!privateKey) {
     log("Please provide --private-key and --public-key cli arguments");
     process.exit();
   }
 
-  const grpcClient = await rchainToolkit.grpc.getClient(
-    `${process.env.HOST}:${process.env.PORT}`,
-    grpc,
-    protoLoader,
-    "deployService"
-  );
-
-  const grpcProposeClient = await rchainToolkit.grpc.getGrpcProposeClient(
-    `${process.env.HOST}:${process.env.PROPOSE_PORT}`,
-    grpc,
-    protoLoader
-  );
+  const publicKey = rchainToolkit.utils.publicKeyFromPrivateKey(privateKey);
+  log("publicKey : " + publicKey);
 
   const phloLimit = 300000;
 
-  log("host : " + process.env.HOST);
-  log("port : " + process.env.PORT);
-  log("port (HTTP): " + process.env.HTTP_PORT);
-  log("port (propose) : " + process.env.PROPOSE_PORT);
-  log("publicKey : " + publicKey);
-  log("phlo limit : " + phloLimit);
-  log("Deploying ...");
+  if (
+    !process.env.READ_ONLY_HOST.startsWith("https://") &&
+    !process.env.READ_ONLY_HOST.startsWith("http://")
+  ) {
+    log("READ_ONLY_HOST must start with http:// or https://", "error");
+    process.exit();
+  }
+  if (
+    !process.env.VALIDATOR_HOST.startsWith("https://") &&
+    !process.env.VALIDATOR_HOST.startsWith("http://")
+  ) {
+    log("VALIDATOR_HOST must start with http:// or https://", "error");
+    process.exit();
+  }
+  log("host (read-only):                   " + process.env.READ_ONLY_HOST);
+  log("host (read-only) HTTP port:         " + process.env.READ_ONLY_HTTP_PORT);
+  log("host (validator):                   " + process.env.VALIDATOR_HOST);
+  log("host (validator) HTTP port:         " + process.env.VALIDATOR_HTTP_PORT);
+  log(
+    "host (validator) GRPC propose port: " +
+      process.env.VALIDATOR_GRPC_PROPOSE_PORT
+  );
 
-  const rnodeHttpUrl = `${process.env.HOST}:${process.env.HTTP_PORT}`;
+  let httpUrlReadOnly = `${process.env.READ_ONLY_HOST}:${process.env.READ_ONLY_HTTP_PORT}`;
+  if (!process.env.READ_ONLY_HTTP_PORT) {
+    httpUrlReadOnly = process.env.READ_ONLY_HOST;
+  }
+  let httpUrlValidator = `${process.env.VALIDATOR_HOST}:${process.env.VALIDATOR_HTTP_PORT}`;
+  if (!process.env.VALIDATOR_HTTP_PORT) {
+    httpUrlValidator = process.env.VALIDATOR_HOST;
+  }
+  const grpcUrlValidator = `${process.env.VALIDATOR_HOST}:${process.env.VALIDATOR_GRPC_PROPOSE_PORT}`;
+
+  const grpcProposeClient = await rchainToolkit.grpc.getGrpcProposeClient(
+    grpcUrlValidator.replace("http://", "").replace("https://", ""),
+    grpc,
+    protoLoader
+  );
 
   // =====
   // NAMES
@@ -52,7 +66,7 @@ const main = async () => {
   let prepareDeployResponse;
   try {
     prepareDeployResponse = await rchainToolkit.http.prepareDeploy(
-      rnodeHttpUrl,
+      httpUrlReadOnly,
       {
         deployer: publicKey,
         timestamp: timestamp,
@@ -65,20 +79,18 @@ const main = async () => {
     process.exit();
   }
 
-  let lastFinalizedBlock;
+  let validAfterBlockNumber;
   try {
-    lastFinalizedBlock = await rchainToolkit.grpc.lastFinalizedBlock(
-      grpcClient
-    );
+    validAfterBlockNumber = JSON.parse(
+      await rchainToolkit.http.blocks(httpUrlReadOnly, {
+        position: 1
+      })
+    )[0].blockNumber;
   } catch (err) {
-    log("Unable to get last finalized block");
+    log("Unable to get last finalized block", "error");
     console.log(err);
     process.exit();
   }
-
-  const lastFinalizedBlockValue = parseInt(
-    lastFinalizedBlock.blockInfo.blockNumber
-  );
 
   let unforgeableNameFromNode;
   try {
@@ -97,17 +109,17 @@ const main = async () => {
     publicKey,
     1,
     phloLimit,
-    lastFinalizedBlockValue || -1
+    validAfterBlockNumber || -1
   );
 
   try {
     const deployResponse = await rchainToolkit.http.deploy(
-      rnodeHttpUrl,
+      httpUrlValidator,
       deployOptions
     );
     if (!deployResponse.startsWith('"Success!')) {
       log("Unable to deploy");
-      console.log(deployResponse.error.messages);
+      console.log(deployResponse);
       process.exit();
     }
   } catch (err) {
@@ -119,30 +131,47 @@ const main = async () => {
 
   try {
     await rchainToolkit.grpc.propose({}, grpcProposeClient);
+    log("Proposed (1st proposal for names.rho)");
   } catch (err) {
-    log("Unable to propose");
+    log("Unable to propose, skipping propose", "warning");
     console.log(err);
-    process.exit();
   }
-
-  log("Proposed (1st proposal for names.rho)");
-
-  await new Promise(res => {
-    setTimeout(res, 2000);
-  });
 
   const unforgeableNameQuery = buildUnforgeableNameQuery(
     unforgeableNameFromNode
   );
 
   let dataAtNameResponse;
+
   try {
-    dataAtNameResponse = await rchainToolkit.http.dataAtName(rnodeHttpUrl, {
-      name: unforgeableNameQuery,
-      depth: 1000
+    dataAtNameResponse = await new Promise((resolve, reject) => {
+      const interval = setInterval(() => {
+        try {
+          rchainToolkit.http
+            .dataAtName(httpUrlValidator, {
+              name: unforgeableNameQuery,
+              depth: 5
+            })
+            .then(dataAtNameResponse => {
+              if (
+                dataAtNameResponse &&
+                JSON.parse(dataAtNameResponse).exprs.length
+              ) {
+                resolve(dataAtNameResponse);
+                clearInterval(interval);
+              } else {
+                log(
+                  "Did not find transaction data, will try again in 10 seconds"
+                );
+              }
+            });
+        } catch (err) {
+          log("Cannot retreive transaction data, will try again in 10 seconds");
+        }
+      }, 10000);
     });
   } catch (err) {
-    log("Cannot retreive transaction data");
+    log("Failed to parse dataAtName response", "error");
     console.log(err);
     process.exit();
   }
@@ -164,7 +193,7 @@ const main = async () => {
   let prepareDeployResponse2;
   try {
     prepareDeployResponse2 = await rchainToolkit.http.prepareDeploy(
-      rnodeHttpUrl,
+      httpUrlReadOnly,
       {
         deployer: publicKey,
         timestamp: timestamp2,
@@ -194,17 +223,17 @@ const main = async () => {
     publicKey,
     1,
     phloLimit,
-    lastFinalizedBlockValue || -1
+    validAfterBlockNumber || -1
   );
 
   try {
     const deployResponse = await rchainToolkit.http.deploy(
-      rnodeHttpUrl,
+      httpUrlValidator,
       deployOptions2
     );
     if (!deployResponse.startsWith('"Success!')) {
       log("Unable to deploy");
-      console.log(deployResponse.error.messages);
+      console.log(deployResponse);
       process.exit();
     }
   } catch (err) {
@@ -217,16 +246,11 @@ const main = async () => {
 
   try {
     await rchainToolkit.grpc.propose({}, grpcProposeClient);
+    log("Proposed (2nd proposal for nodes.rho)");
   } catch (err) {
-    log("Unable to propose");
+    log("Unable to propose, skipping propose", "warning");
     console.log(err);
-    process.exit();
   }
-
-  log("Proposed (2nd proposal for nodes.rho)");
-  await new Promise(res => {
-    setTimeout(res, 2000);
-  });
 
   const unforgeableNameQuery2 = buildUnforgeableNameQuery(
     unforgeableNameFromNode2
@@ -234,12 +258,34 @@ const main = async () => {
 
   let dataAtNameResponse2;
   try {
-    dataAtNameResponse2 = await rchainToolkit.http.dataAtName(rnodeHttpUrl, {
-      name: unforgeableNameQuery2,
-      depth: 1000
+    dataAtNameResponse2 = await new Promise((resolve, reject) => {
+      const interval = setInterval(() => {
+        try {
+          rchainToolkit.http
+            .dataAtName(httpUrlValidator, {
+              name: unforgeableNameQuery2,
+              depth: 5
+            })
+            .then(dataAtNameResponse => {
+              if (
+                dataAtNameResponse &&
+                JSON.parse(dataAtNameResponse).exprs.length
+              ) {
+                resolve(dataAtNameResponse);
+                clearInterval(interval);
+              } else {
+                log(
+                  "Did not find transaction data, will try again in 10 seconds"
+                );
+              }
+            });
+        } catch (err) {
+          log("Cannot retreive transaction data, will try again in 10 seconds");
+        }
+      }, 10000);
     });
   } catch (err) {
-    log("Cannot retreive transaction data");
+    log("Failed to parse dataAtName response", "error");
     console.log(err);
     process.exit();
   }
@@ -255,25 +301,22 @@ const main = async () => {
 
   const nodesDeployJsObject = rchainToolkit.utils.rhoValToJs(data2.expr);
 
-  console.log(namesDeployJsObject);
   log("Dappy network deployed successfully !");
   log("");
   log("Your Dappy network variables :");
-  log(
-    "RCHAIN_NAMES_UNFORGEABLE_NAME_ID : " +
-      namesDeployJsObject.unforgeable_name.UnforgPrivate
-  );
-  log(
-    "RCHAIN_NAMES_REGISTRY_URI :        " +
-      namesDeployJsObject.registry_uri.replace("rho:id:", "")
-  );
-  log(
-    "DAPPY_NODES_UNFORGEABLE_NAME_ID :  " +
-      nodesDeployJsObject.unforgeable_name.UnforgPrivate
-  );
-  log(
-    "DAPPY_NODES_REGISTRY_URI :         " +
-      nodesDeployJsObject.registry_uri.replace("rho:id:", "") +
+  console.log(
+    "RCHAIN_NAMES_UNFORGEABLE_NAME_ID=" +
+      namesDeployJsObject.recordsUnforgeableName.UnforgPrivate +
+      "\nRCHAIN_NAMES_REGISTRY_URI=" +
+      namesDeployJsObject.recordsRegistryUri.replace("rho:id:", "") +
+      "\nRCHAIN_NAMES_REGISTRY_URI_ENTRY=" +
+      namesDeployJsObject.entryRegistryUri.replace("rho:id:", "") +
+      "\nDAPPY_NODES_UNFORGEABLE_NAME_ID=" +
+      nodesDeployJsObject.nodesUnforgeableName.UnforgPrivate +
+      "\nDAPPY_NODES_REGISTRY_URI=" +
+      nodesDeployJsObject.nodesRegistryUri.replace("rho:id:", "") +
+      "\nDAPPY_NODES_REGISTRY_URI_ENTRY= " +
+      nodesDeployJsObject.entryRegistryUri.replace("rho:id:", "") +
       "\n"
   );
 };
