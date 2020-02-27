@@ -1,0 +1,7 @@
+{
+  "name": "hamburger",
+  "public_key": "aaa",
+  "unforgeable_name": "bbb",
+  "servers": [],
+  "nonce": "NONCE"
+}
