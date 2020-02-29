@@ -2,8 +2,10 @@ const grpc = require("@grpc/grpc-js");
 const fs = require("fs");
 const protoLoader = require("@grpc/proto-loader");
 const rchainToolkit = require("rchain-toolkit");
+const uuidv4 = require("uuid/v4");
 require("dotenv").config();
 
+const prereservedNames = require("./top1000domains").prereservedNames;
 const { getProcessArgv, buildUnforgeableNameQuery, log } = require("./utils");
 const main = async () => {
   const privateKey = getProcessArgv("--private-key");
@@ -11,14 +13,21 @@ const main = async () => {
   const timestamp = new Date().valueOf();
 
   if (!privateKey) {
-    log("Please provide --private-key and --public-key cli arguments");
+    log("Please provide --private-key cli arguments");
     process.exit();
   }
 
   const publicKey = rchainToolkit.utils.publicKeyFromPrivateKey(privateKey);
   log("publicKey : " + publicKey);
 
-  const phloLimit = 300000;
+  let phloLimit = getProcessArgv("--phlo-limit");
+  if (phloLimit) {
+    phloLimit = parseInt(phloLimit);
+    log("Phlo limit (from CLI) :         " + phloLimit);
+  } else {
+    phloLimit = 300000;
+    log("Phlo limit (default) :          " + phloLimit);
+  }
 
   if (
     !process.env.READ_ONLY_HOST.startsWith("https://") &&
@@ -100,7 +109,30 @@ const main = async () => {
     process.exit();
   }
 
-  const term = fs.readFileSync("./names.rho", "utf8");
+  let term = fs.readFileSync("./names.rho", "utf8");
+
+  let prereservedNamesMap = "{\n";
+  if (prereservedNames) {
+    prereservedNames.forEach((n, i) => {
+      prereservedNamesMap += `"${n}": { "address": "${
+        process.env.ADDRESS_FOR_PRERESERVED_NAMES
+      }", "publicKey": "${publicKey}", "nonce": "${uuidv4().replace(
+        /-/g,
+        ""
+      )}"}`;
+      if (i !== prereservedNames.length - 1) {
+        prereservedNamesMap += ",\n";
+      }
+    });
+    log(
+      `${prereservedNames.length} prereserved names have been added to the names.rho contract`
+    );
+    prereservedNamesMap += "\n}\n";
+    term = term.replace("GENESIS_RECORDS_MAP", prereservedNamesMap);
+  } else {
+    term = "{}";
+  }
+
   const deployOptions = await rchainToolkit.utils.getDeployOptions(
     "secp256k1",
     timestamp,

@@ -14,7 +14,23 @@ Copy the `.env.example` file to `.env`, eventually replace with correct port/hos
 
 Execute script :
 
-**Careful** : There is a 30 000 phlo limit hardcoded
+**Careful** : There is a 300 000 phlo limit hardcoded, provide the --phlo-limit CLI parameter to override it
+
+#### Pre-reserved names
+
+By default, the top 1000 domain names will be pre-reserved, check the `top1000domains\*` files. The public key used for deployment will be the owner of all those names. You must set the `ADDRESS_FOR_PRERESERVED_NAMES` in `.env` file to a file/address that exists (previously deployed with dappy-cli for example), usually, this file/address explains why the name has been pre-reserved and how to recover it if you are the legitimate owner.
+
+The `prereserved_name_dapp.dpy` file is the file deployed at each Dappy network releases.
+
+![Prereserved names](https://i.ibb.co/6P40sjy/prereserved-name.png)
+
+You can avoid this feature by overriding `top1000domains.js` with the following :
+
+```
+module.exports.prereservedNames = null;
+```
+
+#### Deployment
 
 ```
 npm i
@@ -26,6 +42,8 @@ Now that you have deployed the two init files, anyone is able to add a name, and
 ### Setup (only names.rho)
 
 You can directly deploy the `names.rho` contract with rnode cli, if you deploy it directly you must retreive the registry URI that is logged by rnode.
+
+Make sure to change the `GENESIS_RECORDS_MAP` in rholang (line 26) to `{}`.
 
 ### Create/purchase name
 
@@ -50,10 +68,12 @@ node generate_nonce.js
 # Deploy name_create.rho
 
 # "purchase succesfull" should be logged
-### Update name
 
 ```
 
+### Update name
+
+```
 # Generate a random nonce
 node generate_nonce.js
 
@@ -67,7 +87,6 @@ node name_update_generate_signature.js
 # Deploy name_update.rho
 
 # "update succesfull" should be logged
-
 ```
 
 ### How a name is represented onchain
@@ -123,6 +142,8 @@ Nevertheless you are free to deploy this records contract and use it the way you
 
 #### Prevent "yahoo" or "mozilla" from being bought by random persons
 
+**See Pre-reserved names paragraph**
+
 It could be a cool idea to forbid anyone from buying one of the 10 000 more frequented websites in the world. All these names could be at genesis owned by a honest third party who's only purpose is to identify the legitimate requests from big corporations or governements for a given name. When rightly identified, the third party would just edit the public key of the record so its owner changes.
 
 #### Handle dollar/REVS rate fluctuations
@@ -130,4 +151,3 @@ It could be a cool idea to forbid anyone from buying one of the 10 000 more freq
 You are free to express price in raw REVs. Under a Dappy network, we need to have a mapping to some major fiat currency rate (dollar or euro) so the price is generally stable from an outside point of view.
 
 The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars
-```

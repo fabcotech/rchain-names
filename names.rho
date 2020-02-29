@@ -23,7 +23,7 @@ new
 in {
 
   // Send an initially empty map
-  records!({}) |
+  records!(GENESIS_RECORDS_MAP) |
 
   // Update a record
   contract update(@record, return) = {
