@@ -1,20 +1,27 @@
 new
   basket,
   records,
-  update,
-  create,
+  updateCh,
+  createCh,
+  changePriceCh,
   entry,
   hashname,
   verify,
-  payRevPublicKey,
-  payRevReturn,
-  payReturn,
+  payRevDataCh,
+  payRevReturnCh,
   entryUriCh,
   recordsUriCh,
   updateUriCh,
   revAddrCh,
   verifySignatureCh,
+  verifySignatureChangePriceCh,
   hashCh,
+  RevVaultCh,
+  priceNonceCh,
+  publicKeyCh,
+  recipientAddressCh,
+  priceCh,
+  rl(`rho:registry:lookup`),
   secpVerify(`rho:crypto:secp256k1Verify`),
   insertArbitrary(`rho:registry:insertArbitrary`),
   stdout(`rho:io:stdout`),
@@ -22,11 +29,60 @@ new
   blake2b256(`rho:crypto:blake2b256Hash`)
 in {
 
+  // 1 REV
+  priceCh!(100000000) |
+
+  priceNonceCh!(NONCE) |
+  publicKeyCh!(PUBLIC_KEY) |
+  recipientAddressCh!(ADDRESS) |
+
   // Send an initially empty map
   records!(GENESIS_RECORDS_MAP) |
 
+  // Change the price of record purchase
+  contract changePriceCh(@payload, return) = {
+    for (@priceNonce <- priceNonceCh; @publicKey <- publicKeyCh) {
+      stdout!("priceNonce " ++ priceNonce) |
+      stdout!("publicKey " ++ publicKey) |
+      stdout!("signature " ++ payload.get("signature")) |
+      publicKeyCh!(publicKey) |
+      blake2b256!(
+        priceNonce.toUtf8Bytes(),
+        *hashCh
+      ) |
+      for (@hash <- hashCh) {
+        secpVerify!(
+          hash,
+          payload.get("signature").hexToBytes(),
+          publicKey.hexToBytes(),
+          *verifySignatureChangePriceCh
+        )
+      } |
+      for (@result <- verifySignatureChangePriceCh) {
+        stdout!(result) |
+        match result {
+          true => {
+            for (price <- priceCh) {
+              stdout!("Price changed successfully to new value") |
+              stdout!(payload.get("price")) |
+              return!("Price changed successfully to new value") |
+              priceCh!(payload.get("price")) |
+              priceNonceCh!(payload.get("nonce"))
+            }
+          }
+          false => {
+            stdout!("error: Invalid signature, could not change price") |
+            return!("error: Invalid signature, could not change price") |
+            priceNonceCh!(priceNonce)
+          }
+        }
+      }
+    }
+  } |
+
+
   // Update a record
-  contract update(@record, return) = {
+  contract updateCh(@record, return) = {
     for (current <- records) {
       match *current.contains(record.get("name")) {
         true => {
@@ -67,46 +123,41 @@ in {
     }
   } |
 
-  for (@pubKey <- payRevPublicKey; return <- payRevReturn) {
+  for (@(pubKey, deployerId) <- payRevDataCh; @return <- payRevReturnCh) {
+    stdout!("pubKey  " ++ pubKey) |
+    stdout!(deployerId) |
     RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddrCh) |
 
-    for (@revAddress <- revAddrCh) {
-      stdout!(("REV address for public key", pubKey, "is", revAddress)) |
-      new RevVaultCh, rl(`rho:registry:lookup`) in {
-        rl!(`rho:rchain:revVault`, *RevVaultCh) |
-        for (@(_, RevVault) <- RevVaultCh) {
-
-          match (
-            revAddress,
-            "1111YT4aWjn7nZNi65bTKJF9GEtXL12raZ9GThLHDi5YMxtdiJkpM",
-            1
-          ) {
-            (from, to, amount) => {
-
-              new vaultCh, revVaultkeyCh, deployerId(`rho:rchain:deployerId`) in {
-                @RevVault!("findOrCreate", from, *vaultCh) |
-                @RevVault!("deployerAuthKey", *deployerId, *revVaultkeyCh) |
-                for (@(true, vault) <- vaultCh; key <- revVaultkeyCh) {
-
-                  stdout!(("Beginning transfer of ", amount, "REV from", from, "to", to)) |
-
-                  new resultCh in {
-                    @vault!("transfer", to, amount, *key, *resultCh) |
-                    for (@result <- resultCh) {
-
-                      stdout!(("Finished transfer of ", amount, "REV to", to, "result was:", result)) |
-
-                      match result {
-                        (true, Nil) => {
-                          stdout!("yes") |
-                          return!(true)
-                        }
-                        _ => {
-                          return!(result.nth(1))
+    for (@revAddress <- revAddrCh; @price <- priceCh; @recipientAddress <- recipientAddressCh) {
+      priceCh!(price) |
+      rl!(`rho:rchain:revVault`, *RevVaultCh) |
+      for (@(_, RevVault) <- RevVaultCh) {
+        new vaultCh, vaultTo, revVaultkeyCh,
+          deployId(`rho:rchain:deployId`)
+        in {
+          match (revAddress, recipientAddress, price) {
+            (revAddrFrom, revAddrTo, amount) => {
+              @RevVault!("findOrCreate", revAddrFrom, *vaultCh) |
+              @RevVault!("findOrCreate", revAddrTo, *vaultTo) |
+              @RevVault!("deployerAuthKey", deployerId, *revVaultkeyCh) |
+              for (@vault <- vaultCh; key <- revVaultkeyCh; _ <- vaultTo) {
+                match vault {
+                  (true, vault) => {
+                    new resultCh in {
+                      @vault!("transfer", revAddrTo, amount, *key, *resultCh) |
+                      for (@result <- resultCh) {
+                        stdout!(result) |
+                        match result {
+                          (true , Nil) => {
+                            @return!(true) |
+                            stdout!("true nil")
+                          }
+                          (false, err) => @return!(err)
                         }
                       }
                     }
                   }
+                  err => { @return!(err) }
                 }
               }
             }
@@ -114,35 +165,38 @@ in {
         }
       }
     }
+
   } |
 
   // create a record
-  contract create(record, return) = {
+  contract createCh(record, return) = {
+    stdout!(1) |
     for (current <- records) {
+      stdout!(2) |
+      stdout!(*current) |
       match *current.contains(*record.get("name")) {
         true => {
           return!("error: name " ++ *record.get("name") ++ " already taken") |
           records!(*current)
         }
         false => {
-          // todo remove 2 following lines
-          return!(true) |
-          records!(*current.set(*record.get("name"), *record)) |
-          // todo record.get("publicKey") must pay 1 REV to create record
-          // todo uncomment 2 following lines
-          // payRevPublicKey!(*record.get("publicKey")) |
-          // payRevReturn!(*payReturn) |
-          for (a <- payReturn) {
-            match *a {
-              true => {
-                stdout!("success: record " ++ *record.get("name") ++ " created") |
-                return!(true) |
-                records!(*current.set(*record.get("name"), *record))
-              }
-              _ => {
-                stdout!("error: payment failure") |
-                return!("error: payment failure") |
-                records!(*current)
+          stdout!(3) |
+          new payReturnCh in {
+            payRevDataCh!((*record.get("publicKey"), *record.get("deployerId"))) |
+            payRevReturnCh!(*payReturnCh) |
+            for (a <- payReturnCh) {
+              stdout!(4) |
+              match *a {
+                true => {
+                  stdout!("success: record " ++ *record.get("name") ++ " created") |
+                  return!(true) |
+                  records!(*current.set(*record.get("name"), *record))
+                }
+                _ => {
+                  stdout!("error: payment failure") |
+                  return!("error: payment failure") |
+                  records!(*current)
+                }
               }
             }
           }
@@ -155,10 +209,13 @@ in {
     stdout!(action) |
     match action.get("type") {
       "CREATE" => {
-        create!(action.get("payload"), return)
+        createCh!(action.get("payload"), return)
       }
       "UPDATE" => {
-        update!(action.get("payload"), return)
+        updateCh!(action.get("payload"), return)
+      }
+      "CHANGE_PRICE" => {
+        changePriceCh!(action.get("payload"), return)
       }
     }
   } |

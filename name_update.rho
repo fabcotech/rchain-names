@@ -3,7 +3,7 @@ new updateCh,
   lookup(`rho:registry:lookup`),
   stdout(`rho:io:stdout`) in {
 
-  lookup!(`rho:id:omm6r9xcsbuyabtcriffyzce4jqesondt39fipgwscpwjth9cjw8q6`, *updateCh) |
+  lookup!(`rho:id:REGISTRY_URI`, *updateCh) |
 
   for(update <- updateCh) {
     update!((
@@ -12,10 +12,10 @@ new updateCh,
         "payload": {
           "name": "hamburger",
           "servers": [],
-          "publicKey": "0442b519a340fb170bf2ee3173080f5456c22b5d7b765f8fd0744b5a692f183042a733b59f03cd74eb5a154eb7929bb7b29af4c5dfe81edfa22e1b74fb7642d777",
-          "address": "UNFORGEABLE_NAME",
-          "signature": "30440220780fffe5d3a07c658b52b0efa3384d5ea854673718f89a9f758aba5f7b1eb5c3022010d293dd149e59e9af08102a0fb58c37f30708ebf23c52a004d2bf5ff8df24ea",
-          "nonce": "200e959bfac848e382d0630bd7393f44"
+          "publicKey": PUBLIC_KEY,
+          "address": BLOCKCHAIN_ADDRESS,
+          "signature": SIGNATURE,
+          "nonce": NONCE
         }
       },
       *returnCh

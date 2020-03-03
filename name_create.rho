@@ -1,9 +1,10 @@
 new entryCh,
   returnCh,
   lookup(`rho:registry:lookup`),
-  stdout(`rho:io:stdout`) in {
+  stdout(`rho:io:stdout`),
+  deployerId(`rho:rchain:deployerId`) in {
 
-  lookup!(`rho:id:96o7boonpqtiesrfeoight513w9npnzpnf874jqaqqtf4e16yp171q`, *entryCh) |
+  lookup!(`rho:id:REGISTRY_URI`, *entryCh) |
 
   for(entry <- entryCh) {
     entry!((
@@ -11,10 +12,11 @@ new entryCh,
         "type": "CREATE",
         "payload": {
           "name": "hamburger",
-          "publicKey": "0442b519a340fb170bf2ee3173080f5456c22b5d7b765f8fd0744b5a692f183042a733b59f03cd74eb5a154eb7929bb7b29af4c5dfe81edfa22e1b74fb7642d777",
+          "publicKey": PUBLIC_KEY,
           "servers": [],
-          "address": "ADDRESS",
-          "nonce": "745f0edf89514bef8e32921fa4844f35"
+          "address": ADDRESS,
+          "nonce": NONCE,
+          "deployerId": *deployerId
         }
       },
       *returnCh

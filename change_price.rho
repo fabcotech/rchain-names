@@ -1,0 +1,25 @@
+new entryCh,
+  returnCh,
+  lookup(`rho:registry:lookup`),
+  stdout(`rho:io:stdout`),
+  deployerId(`rho:rchain:deployerId`) in {
+
+  lookup!(`rho:id:REGISTRY_URI`, *entryCh) |
+
+  for(entry <- entryCh) {
+    entry!((
+      {
+        "type": "CHANGE_PRICE",
+        "payload": {
+          "price": 60000,
+          "signature": SIGNATURE,
+          "nonce": NONCE
+        }
+      },
+      *returnCh
+    )) |
+    for (@res <- returnCh) {
+      stdout!(res)
+    }
+  }
+}

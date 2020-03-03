@@ -23,10 +23,10 @@ const main = async () => {
   let phloLimit = getProcessArgv("--phlo-limit");
   if (phloLimit) {
     phloLimit = parseInt(phloLimit);
-    log("Phlo limit (from CLI) :         " + phloLimit);
+    log("Phlo limit (from CLI) :             " + phloLimit);
   } else {
     phloLimit = 300000;
-    log("Phlo limit (default) :          " + phloLimit);
+    log("Phlo limit (default) :              " + phloLimit);
   }
 
   if (
@@ -109,7 +109,14 @@ const main = async () => {
     process.exit();
   }
 
-  let term = fs.readFileSync("./names.rho", "utf8");
+  let term = fs
+    .readFileSync("./names.rho", "utf8")
+    .replace(new RegExp("PUBLIC_KEY", "g"), `"${publicKey}"`)
+    .replace(new RegExp("NONCE", "g"), `"${uuidv4().replace(/-/g, "")}"`)
+    .replace(
+      new RegExp("ADDRESS", "g"),
+      `"${rchainToolkit.utils.revAddressFromPublicKey(publicKey)}"`
+    );
 
   let prereservedNamesMap = "{\n";
   if (prereservedNames) {

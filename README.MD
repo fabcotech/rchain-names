@@ -43,7 +43,12 @@ Now that you have deployed the two init files, anyone is able to add a name, and
 
 You can directly deploy the `names.rho` contract with rnode cli, if you deploy it directly you must retreive the registry URI that is logged by rnode.
 
-Make sure to change the `GENESIS_RECORDS_MAP` in rholang (line 26) to `{}`.
+Make sure to change the following expressions :
+
+- `GENESIS_RECORDS_MAP` in rholang (line 39) to `{}`.
+- `NONCE` in rholang (line 34) with appropriate value.
+- `PUBLIC_KEY` in rholang (line 35) with appropriate value.
+- `ADDRESS` in rholang (line 36) with appropriate value.
 
 ### Create/purchase name
 
@@ -77,8 +82,8 @@ node generate_nonce.js
 # Generate a random nonce
 node generate_nonce.js
 
-# Generate a signature by referencing the private key and nonce in name_update_generate_signature.js
-node name_update_generate_signature.js
+# Generate a signature by referencing the private key and nonce in generate_signature_for_nonce.js
+node generate_signature_for_nonce.js
 
 # Update the nonce, signature and other record values in name_update.rho
 
