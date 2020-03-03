@@ -7,8 +7,6 @@ new
   entry,
   hashname,
   verify,
-  payRevDataCh,
-  payRevReturnCh,
   entryUriCh,
   recordsUriCh,
   updateUriCh,
@@ -123,51 +121,6 @@ in {
     }
   } |
 
-  for (@(pubKey, deployerId) <- payRevDataCh; @return <- payRevReturnCh) {
-    stdout!("pubKey  " ++ pubKey) |
-    stdout!(deployerId) |
-    RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddrCh) |
-
-    for (@revAddress <- revAddrCh; @price <- priceCh; @recipientAddress <- recipientAddressCh) {
-      priceCh!(price) |
-      rl!(`rho:rchain:revVault`, *RevVaultCh) |
-      for (@(_, RevVault) <- RevVaultCh) {
-        new vaultCh, vaultTo, revVaultkeyCh,
-          deployId(`rho:rchain:deployId`)
-        in {
-          match (revAddress, recipientAddress, price) {
-            (revAddrFrom, revAddrTo, amount) => {
-              @RevVault!("findOrCreate", revAddrFrom, *vaultCh) |
-              @RevVault!("findOrCreate", revAddrTo, *vaultTo) |
-              @RevVault!("deployerAuthKey", deployerId, *revVaultkeyCh) |
-              for (@vault <- vaultCh; key <- revVaultkeyCh; _ <- vaultTo) {
-                match vault {
-                  (true, vault) => {
-                    new resultCh in {
-                      @vault!("transfer", revAddrTo, amount, *key, *resultCh) |
-                      for (@result <- resultCh) {
-                        stdout!(result) |
-                        match result {
-                          (true , Nil) => {
-                            @return!(true) |
-                            stdout!("true nil")
-                          }
-                          (false, err) => @return!(err)
-                        }
-                      }
-                    }
-                  }
-                  err => { @return!(err) }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-  } |
-
   // create a record
   contract createCh(record, return) = {
     stdout!(1) |
@@ -181,10 +134,56 @@ in {
         }
         false => {
           stdout!(3) |
-          new payReturnCh in {
+          new payRevReturnCh, payRevDataCh in {
+            // Payment handling
+            for (@(pubKey, deployerId) <- payRevDataCh) {
+              stdout!("pubKey  " ++ pubKey) |
+              stdout!(deployerId) |
+              RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddrCh) |
+
+              for (@revAddress <- revAddrCh; @price <- priceCh; @recipientAddress <- recipientAddressCh) {
+                priceCh!(price) |
+                rl!(`rho:rchain:revVault`, *RevVaultCh) |
+                for (@(_, RevVault) <- RevVaultCh) {
+                  new vaultCh, vaultTo, revVaultkeyCh,
+                    deployId(`rho:rchain:deployId`)
+                  in {
+                    match (revAddress, recipientAddress, price) {
+                      (revAddrFrom, revAddrTo, amount) => {
+                        @RevVault!("findOrCreate", revAddrFrom, *vaultCh) |
+                        @RevVault!("findOrCreate", revAddrTo, *vaultTo) |
+                        @RevVault!("deployerAuthKey", deployerId, *revVaultkeyCh) |
+                        for (@vault <- vaultCh; key <- revVaultkeyCh; _ <- vaultTo) {
+                          match vault {
+                            (true, vault) => {
+                              new resultCh in {
+                                @vault!("transfer", revAddrTo, amount, *key, *resultCh) |
+                                for (@result <- resultCh) {
+                                  stdout!(result) |
+                                  match result {
+                                    (true , Nil) => {
+                                      payRevReturnCh!(true) |
+                                      stdout!(*return) |
+                                      stdout!("true nil")
+                                    }
+                                    (false, err) => payRevReturnCh!(err)
+                                  }
+                                }
+                              }
+                            }
+                            err => { payRevReturnCh!(err) }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } |
+
             payRevDataCh!((*record.get("publicKey"), *record.get("deployerId"))) |
-            payRevReturnCh!(*payReturnCh) |
-            for (a <- payReturnCh) {
+            
+            for (a <- payRevReturnCh) {
               stdout!(4) |
               match *a {
                 true => {
