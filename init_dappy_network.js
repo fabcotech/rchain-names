@@ -118,26 +118,32 @@ const main = async () => {
       `"${rchainToolkit.utils.revAddressFromPublicKey(publicKey)}"`
     );
 
-  let prereservedNamesMap = "{\n";
+  let genesisOperations = "";
   if (prereservedNames) {
-    prereservedNames.forEach((n, i) => {
-      prereservedNamesMap += `"${n}": { "address": "${
+    prereservedNames.slice(0, 100).forEach((n, i) => {
+      const map = `{ "servers": [], "name": "${n}", "address": "${
         process.env.ADDRESS_FOR_PRERESERVED_NAMES
       }", "publicKey": "${publicKey}", "nonce": "${uuidv4().replace(
         /-/g,
         ""
       )}"}`;
-      if (i !== prereservedNames.length - 1) {
-        prereservedNamesMap += ",\n";
+      genesisOperations += `
+  new uriCh in {
+    insertArbitrary!(${map}, *uriCh) |
+    for (uri <- uriCh) {
+      for (current <- records) {
+        records!(*current.set("${n}", *uri))
       }
+    }
+  } |`;
     });
     log(
       `${prereservedNames.length} prereserved names have been added to the names.rho contract`
     );
-    prereservedNamesMap += "\n}\n";
-    term = term.replace("GENESIS_RECORDS_MAP", prereservedNamesMap);
+
+    term = term.replace("GENESIS_OPERATIONS", genesisOperations);
   } else {
-    term = "{}";
+    term = term.replace("GENESIS_OPERATIONS", "");
   }
 
   const deployOptions = await rchainToolkit.utils.getDeployOptions(
@@ -169,10 +175,26 @@ const main = async () => {
   log("Deployed names.rho");
 
   try {
-    await rchainToolkit.grpc.propose({}, grpcProposeClient);
-    log("Proposed (1st proposal for names.rho)");
+    await new Promise((resolve, reject) => {
+      let over = false;
+      setTimeout(() => {
+        if (!over) {
+          over = true;
+          reject(
+            "Timeout error, waited 8 seconds for GRPC response. Skipping."
+          );
+        }
+      }, 8000);
+      rchainToolkit.grpc.propose({}, grpcProposeClient).then(a => {
+        if (!over) {
+          over = true;
+          resolve();
+          log("Proposed (1st proposal for names.rho)");
+        }
+      });
+    });
   } catch (err) {
-    log("Unable to propose, skipping propose", "warning");
+    log("Unable to propose, skip propose", "warning");
     console.log(err);
   }
 
@@ -200,14 +222,14 @@ const main = async () => {
                 clearInterval(interval);
               } else {
                 log(
-                  "Did not find transaction data, will try again in 10 seconds"
+                  "Did not find transaction data, will try again in 15 seconds"
                 );
               }
             });
         } catch (err) {
-          log("Cannot retreive transaction data, will try again in 10 seconds");
+          log("Cannot retreive transaction data, will try again in 15 seconds");
         }
-      }, 10000);
+      }, 15000);
     });
   } catch (err) {
     log("Failed to parse dataAtName response", "error");
@@ -284,10 +306,26 @@ const main = async () => {
   log("Deployed nodes.rho");
 
   try {
-    await rchainToolkit.grpc.propose({}, grpcProposeClient);
-    log("Proposed (2nd proposal for nodes.rho)");
+    await new Promise((resolve, reject) => {
+      let over = false;
+      setTimeout(() => {
+        if (!over) {
+          over = true;
+          reject(
+            "Timeout error, waited 8 seconds for GRPC response. Skipping."
+          );
+        }
+      }, 8000);
+      rchainToolkit.grpc.propose({}, grpcProposeClient).then(a => {
+        if (!over) {
+          over = true;
+          resolve();
+          log("Proposed (2nd proposal for names.rho)");
+        }
+      });
+    });
   } catch (err) {
-    log("Unable to propose, skipping propose", "warning");
+    log("Unable to propose, skip propose", "warning");
     console.log(err);
   }
 
@@ -314,14 +352,14 @@ const main = async () => {
                 clearInterval(interval);
               } else {
                 log(
-                  "Did not find transaction data, will try again in 10 seconds"
+                  "Did not find transaction data, will try again in 15 seconds"
                 );
               }
             });
         } catch (err) {
-          log("Cannot retreive transaction data, will try again in 10 seconds");
+          log("Cannot retreive transaction data, will try again in 15 seconds");
         }
-      }, 10000);
+      }, 15000);
     });
   } catch (err) {
     log("Failed to parse dataAtName response", "error");
@@ -358,6 +396,7 @@ const main = async () => {
       nodesDeployJsObject.entryRegistryUri.replace("rho:id:", "") +
       "\n"
   );
+  process.exit();
 };
 
 main();

@@ -1,6 +1,6 @@
 {
   "name": "rchain-names",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Rholang code for managing names records and nodes on a decentralized Dappy network.",
   "main": "names.rho",
   "scripts": {

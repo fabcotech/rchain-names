@@ -1,6 +1,7 @@
 new
   basket,
   nodes,
+  nodesReaderCh,
   remove,
   add,
   entry,
@@ -77,8 +78,14 @@ eWRmuLF82/Qjt1mijECaI/x1K4vuwEZmnXKZGgHngQAad1A53cNQ
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
-  insertArbitrary!(*nodes, *nodesUriCh) |
+  insertArbitrary!(*nodesReaderCh, *nodesUriCh) |
   
+  for (ch <= nodesReaderCh) {
+    for (current <<- nodes) {
+      ch!(*current)
+    }
+  } |
+
   for (entryUri <- entryUriCh; nodesUri <- nodesUriCh) {
     basket!({
       "entryRegistryUri": *entryUri,

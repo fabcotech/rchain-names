@@ -43,12 +43,14 @@ Now that you have deployed the two init files, anyone is able to add a name, and
 
 You can directly deploy the `names.rho` contract with rnode cli, if you deploy it directly you must retreive the registry URI that is logged by rnode.
 
+**Important :** Check the price you want to impose for each purchase, `priceCh` (line 24).
+
 Make sure to change the following expressions :
 
-- `GENESIS_RECORDS_MAP` in rholang (line 39) to `{}`.
-- `NONCE` in rholang (line 34) with appropriate value.
-- `PUBLIC_KEY` in rholang (line 35) with appropriate value.
-- `ADDRESS` in rholang (line 36) with appropriate value.
+- `GENESIS_OPERATIONS` remove in rholang (line 32).
+- `NONCE` in rholang (line 27) with appropriate value.
+- `PUBLIC_KEY` in rholang (line 28) with appropriate value.
+- `ADDRESS` in rholang (line 29) with appropriate value.
 
 ### Create/purchase name
 

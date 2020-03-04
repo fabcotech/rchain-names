@@ -3,7 +3,7 @@ new createCh,
   stdout(`rho:io:stdout`) in {
 
 
-  lookup!(`rho:id:URI`, *createCh) |
+  lookup!(`rho:id:ikmwyt1gjnmisqsmm6wyimby5e5585eokemm7eoayp5eq5kcemcgrz`, *createCh) |
 
   for(create <- createCh) {
     create!(
