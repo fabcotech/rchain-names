@@ -34,6 +34,7 @@ in {
 
   // Change the price of record purchase
   contract changePriceCh(@payload, return) = {
+    stdout!("changePriceCh") |
     new hashCh, verifySignatureChangePriceCh in {
       for (@priceNonce <- priceNonceCh; @publicKey <- publicKeyCh) {
         publicKeyCh!(publicKey) |
@@ -132,6 +133,7 @@ in {
 
   // create a record
   contract createCh(record, return) = {
+    stdout!("createCh") |
     for (current <- records) {
       match *current.contains(*record.get("name")) {
         true => {
@@ -161,17 +163,17 @@ in {
                     match (revAddress, recipientAddress, price) {
                       (revAddrFrom, revAddrTo, amount) => {
                         @RevVault!("findOrCreate", revAddrFrom, *vaultCh) |
-                        @RevVault!("findOrCreate", revAddrTo, *vaultTo) |
                         @RevVault!("deployerAuthKey", deployerId, *revVaultkeyCh) |
-                        for (@vault <- vaultCh; key <- revVaultkeyCh; _ <- vaultTo) {
+                        for (@vault <- vaultCh; key <- revVaultkeyCh) {
                           match vault {
                             (true, vault) => {
                               new resultCh in {
                                 @vault!("transfer", revAddrTo, amount, *key, *resultCh) |
                                 for (@result <- resultCh) {
-
+                                  stdout!(("Trying to transfer ", price, "from", revAddrFrom, "to", revAddrTo)) |
+                                  stdout!(result) |
                                   match result {
-                                    (true , Nil) =>  payRevReturnCh!(true)
+                                    (true , Nil) => payRevReturnCh!(true)
                                     (false, err) => payRevReturnCh!(err)
                                   }
                                 }

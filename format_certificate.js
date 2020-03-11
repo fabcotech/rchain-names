@@ -1,5 +1,6 @@
 const cert = `-----BEGIN CERTIFICATE-----
-...
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 -----END CERTIFICATE-----`;
 
-console.log(cert.replace(new RegExp("\n", "g"), "\\n"));
+console.log(encodeURI(cert));
