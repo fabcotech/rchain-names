@@ -79,7 +79,7 @@ const main = async () => {
       {
         deployer: publicKey,
         timestamp: timestamp,
-        nameQty: 1
+        nameQty: 1,
       }
     );
   } catch (err) {
@@ -92,7 +92,7 @@ const main = async () => {
   try {
     validAfterBlockNumber = JSON.parse(
       await rchainToolkit.http.blocks(httpUrlReadOnly, {
-        position: 1
+        position: 1,
       })
     )[0].blockNumber;
   } catch (err) {
@@ -118,7 +118,8 @@ const main = async () => {
       `"${rchainToolkit.utils.revAddressFromPublicKey(publicKey)}"`
     );
 
-  let genesisOperations = "";
+  // { facebook : '{ \"name\": \"facebok\"  etc... }', ...  }
+  let prereservedNamesComplete = {};
   if (prereservedNames) {
     prereservedNames.slice(0, 100).forEach((n, i) => {
       const map = `{ "servers": [], "name": "${n}", "address": "${
@@ -127,12 +128,87 @@ const main = async () => {
         /-/g,
         ""
       )}"}`;
+      prereservedNamesComplete[n] = map;
+    });
+  }
+
+  if (process.env.NAMES_TO_RECOVER_URI) {
+    log("Started recovering names from existing name system");
+    // todo : change the term to be rholang-files-module v0.4 compatible
+    const r = await rchainToolkit.http.exploreDeploy(httpUrlReadOnly, {
+      term: `new return, filesModuleCh, readCh, lookup(\`rho:registry:lookup\`) in {
+        lookup!(\`rho:id:${process.env.NAMES_TO_RECOVER_URI}\`, *filesModuleCh) |
+        for(filesModuleReader <- filesModuleCh) {
+          new x in {
+            filesModuleReader!(*x) |
+            for (y <- x) {
+              return!(*y)
+            }
+          }
+        }
+      }`,
+    });
+    const jsValue = rchainToolkit.utils.rhoValToJs(JSON.parse(r).expr[0]);
+    const recordsNotInPrereserved = Object.keys(jsValue.records).filter(
+      (k) => !prereservedNamesComplete[k]
+    );
+    console.log(
+      `Found ${recordsNotInPrereserved.length} new names (in addition to prereserved) in existing name system :`
+    );
+
+    await new Promise((resolve, reject) => {
+      let i = 0;
+      const getRecord = async () => {
+        const name = recordsNotInPrereserved[i];
+        if (i % 10 === 0) {
+          log(`Now at index ${i} : ${name}`);
+        }
+        const r = await rchainToolkit.http.exploreDeploy(httpUrlReadOnly, {
+          term: `new return, recordCh, readCh, lookup(\`rho:registry:lookup\`) in {
+            lookup!(\`${jsValue.records[name]}\`, *recordCh) |
+            for(record <- recordCh) {
+              return!(*record)
+            }
+          }`,
+        });
+        const record = rchainToolkit.utils.rhoValToJs(JSON.parse(r).expr[0]);
+        prereservedNamesComplete[name] = JSON.stringify(record);
+        if (i === recordsNotInPrereserved.length - 1) {
+          resolve();
+        } else {
+          i += 1;
+          getRecord(i);
+        }
+      };
+      getRecord(i);
+    });
+    log(
+      `Successfully recovered ${recordsNotInPrereserved.length} names from existing name system`
+    );
+  }
+
+  log(
+    `${
+      Object.keys(prereservedNamesComplete).length
+    } names ready to be added for deployment`
+  );
+
+  Object.keys(prereservedNamesComplete).length;
+  fs.writeFileSync(
+    "./names.json",
+    JSON.stringify(prereservedNamesComplete, null, 2)
+  );
+  log("names.json has been written to the file system");
+
+  let genesisOperations = "";
+  if (Object.keys(prereservedNamesComplete).length) {
+    Object.keys(prereservedNamesComplete).forEach((k, i) => {
       genesisOperations += `
   new uriCh in {
-    insertArbitrary!(${map}, *uriCh) |
+    insertArbitrary!(${prereservedNamesComplete[k]}, *uriCh) |
     for (uri <- uriCh) {
       for (current <- records) {
-        records!(*current.set("${n}", *uri))
+        records!(*current.set("${k}", *uri))
       }
     }
   } |`;
@@ -185,7 +261,7 @@ const main = async () => {
           );
         }
       }, 8000);
-      rchainToolkit.grpc.propose({}, grpcProposeClient).then(a => {
+      rchainToolkit.grpc.propose({}, grpcProposeClient).then((a) => {
         if (!over) {
           over = true;
           resolve();
@@ -211,9 +287,9 @@ const main = async () => {
           rchainToolkit.http
             .dataAtName(httpUrlValidator, {
               name: unforgeableNameQuery,
-              depth: 5
+              depth: 5,
             })
-            .then(dataAtNameResponse => {
+            .then((dataAtNameResponse) => {
               if (
                 dataAtNameResponse &&
                 JSON.parse(dataAtNameResponse).exprs.length
@@ -258,7 +334,7 @@ const main = async () => {
       {
         deployer: publicKey,
         timestamp: timestamp2,
-        nameQty: 1
+        nameQty: 1,
       }
     );
   } catch (err) {
@@ -316,11 +392,11 @@ const main = async () => {
           );
         }
       }, 8000);
-      rchainToolkit.grpc.propose({}, grpcProposeClient).then(a => {
+      rchainToolkit.grpc.propose({}, grpcProposeClient).then((a) => {
         if (!over) {
           over = true;
           resolve();
-          log("Proposed (2nd proposal for names.rho)");
+          log("Proposed (2nd proposal for nodes.rho)");
         }
       });
     });
@@ -341,9 +417,9 @@ const main = async () => {
           rchainToolkit.http
             .dataAtName(httpUrlValidator, {
               name: unforgeableNameQuery2,
-              depth: 5
+              depth: 5,
             })
-            .then(dataAtNameResponse => {
+            .then((dataAtNameResponse) => {
               if (
                 dataAtNameResponse &&
                 JSON.parse(dataAtNameResponse).exprs.length
@@ -385,15 +461,11 @@ const main = async () => {
     "RCHAIN_NAMES_UNFORGEABLE_NAME_ID=" +
       namesDeployJsObject.recordsUnforgeableName.UnforgPrivate +
       "\nRCHAIN_NAMES_REGISTRY_URI=" +
-      namesDeployJsObject.recordsRegistryUri.replace("rho:id:", "") +
-      "\nRCHAIN_NAMES_REGISTRY_URI_ENTRY=" +
-      namesDeployJsObject.entryRegistryUri.replace("rho:id:", "") +
+      namesDeployJsObject.registryUri.replace("rho:id:", "") +
       "\nDAPPY_NODES_UNFORGEABLE_NAME_ID=" +
       nodesDeployJsObject.nodesUnforgeableName.UnforgPrivate +
       "\nDAPPY_NODES_REGISTRY_URI=" +
-      nodesDeployJsObject.nodesRegistryUri.replace("rho:id:", "") +
-      "\nDAPPY_NODES_REGISTRY_URI_ENTRY= " +
-      nodesDeployJsObject.entryRegistryUri.replace("rho:id:", "") +
+      nodesDeployJsObject.registryUri.replace("rho:id:", "") +
       "\n"
   );
   process.exit();

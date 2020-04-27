@@ -67,7 +67,7 @@ node purchase.js --private-key PRIVATE_KEY --registry-uri-entry ccc
 
 ```
 # Generate a random nonce
-node generate_nonce.js
+node generateNonce.js
 
 # Update the nonce and other record values in name_create.rho
 # Update the registry URI value in name_create.rho
@@ -78,14 +78,24 @@ node generate_nonce.js
 
 ```
 
+### Javascript library
+
+If you look at the `src` folder, there are utils available for javascript programs. Those functions simply return the term needed for create term or update term operations. You can add the following to your `package.json` to use it.
+
+```
+  ...
+  "rchain-names": "fabcotech/rchain-names",
+  ...
+```
+
 ### Update name
 
 ```
 # Generate a random nonce
-node generate_nonce.js
+node generateNonce.js
 
-# Generate a signature by referencing the private key and nonce in generate_signature_for_nonce.js
-node generate_signature_for_nonce.js
+# Generate a signature by referencing the private key and nonce in generateSignatureForNonce.js
+node generateSignatureForNonce.js
 
 # Update the nonce, signature and other record values in name_update.rho
 

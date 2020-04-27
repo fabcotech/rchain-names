@@ -19,7 +19,14 @@ new entryCh,
       *returnCh
     )) |
     for (@res <- returnCh) {
-      stdout!(res)
+      match res {
+        true => {
+          stdout!("Price changed successfully to new value")
+        }
+        _ => {
+          stdout!(res)
+        }
+      }
     }
   }
 }

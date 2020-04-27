@@ -1,24 +1,34 @@
-new revAddress(`rho:rev:address`),
-  registryLookup(`rho:registry:lookup`),
-  stdout(`rho:io:stdout`),
+module.exports.createNameTerm = (
+  registryUri,
+  newNonce,
+  publicKey,
+  serversAsString,
+  address,
+  price
+) => {
+  return `new 
+  revAddress(\`rho:rev:address\`),
+  registryLookup(\`rho:registry:lookup\`),
+  stdout(\`rho:io:stdout\`),
   publicKeyCh,
   entryCh,
   returnCh
 in {
 
-  publicKeyCh!!("PUBLIC_KEY") |
-  registryLookup!(`rho:id:REGISTRY_URI`, *entryCh) |
+  publicKeyCh!!("${publicKey}") |
+
+  registryLookup!(\`rho:id:${registryUri}\`, *entryCh) |
   
   for(entry <- entryCh; @publicKey <- publicKeyCh) {
     entry!((
       {
         "type": "CREATE",
         "payload": {
-          "name": "dappy5",
+          "name": "${name}",
           "publicKey": publicKey,
-          "servers": [],
-          "address": "aaabbb",
-          "nonce": "aea7d21543944c4cafc3cdb5e96c6a8b",
+          "servers": ${serversAsString},
+          "address": "${address}",
+          "nonce": "${newNonce}",
         }
       },
       *returnCh
@@ -37,21 +47,21 @@ in {
               
               new revVaultCh, deployerRevAddressCh in {
 
-                registryLookup!(`rho:rchain:revVault`, *revVaultCh) |
+                registryLookup!(\`rho:rchain:revVault\`, *revVaultCh) |
                 revAddress!("fromPublicKey", publicKey.hexToBytes(), *deployerRevAddressCh) |
 
                 for (@(_, RevVault) <- revVaultCh; @deployerRevAddress <- deployerRevAddressCh) {
 
-                  new deployerVaultCh, deployerVaultkeyCh, deployerId(`rho:rchain:deployerId`) in {
+                  new deployerVaultCh, deployerVaultkeyCh, deployerId(\`rho:rchain:deployerId\`) in {
                     @RevVault!("findOrCreate", deployerRevAddress, *deployerVaultCh) |
                     @RevVault!("deployerAuthKey", *deployerId, *deployerVaultkeyCh) |
                     for (@(true, vault) <- deployerVaultCh; key <- deployerVaultkeyCh) {
 
-                      stdout!(("Beginning transfer of ", 1500000000, "from", deployerRevAddress, "to purse", payload.get("purseRevAddr"))) |
+                      stdout!(("Beginning transfer of ", ${price}, "from", deployerRevAddress, "to purse", payload.get("purseRevAddr"))) |
                       new resultCh in {
-                        @vault!("transfer", payload.get("purseRevAddr"), 1500000000, *key, *resultCh) |
+                        @vault!("transfer", payload.get("purseRevAddr"), ${price}, *key, *resultCh) |
                         for (@result <- resultCh) {
-                          stdout!(("Finished transfer of ", 1500000000, "to", payload.get("purseRevAddr"), "result was:", result)) |
+                          stdout!(("Finished transfer of ", ${price}, "to", payload.get("purseRevAddr"), "result was:", result)) |
                           match result {
                             (true, Nil) => {
                               match res.nth(1) {
@@ -93,5 +103,5 @@ in {
       }
     }
   }
-
-}
+}`;
+};

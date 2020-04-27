@@ -1,7 +1,6 @@
 new
   basket,
   records,
-  recordsReaderCh,
   updateCh,
   createCh,
   changePriceCh,
@@ -13,22 +12,23 @@ new
   publicKeyCh,
   recipientAddressCh,
   priceCh,
-  rl(`rho:registry:lookup`),
+  registryLookup(`rho:registry:lookup`),
   secpVerify(`rho:crypto:secp256k1Verify`),
   insertArbitrary(`rho:registry:insertArbitrary`),
   stdout(`rho:io:stdout`),
   lookup(`rho:registry:lookup`),
-  blake2b256(`rho:crypto:blake2b256Hash`)
+  blake2b256(`rho:crypto:blake2b256Hash`),
+  revAddress(`rho:rev:address`)
 in {
 
   // 1 REV
-  priceCh!(100000000) |
+  priceCh!(1500000000) |
 
   priceNonceCh!(NONCE) |
   publicKeyCh!(PUBLIC_KEY) |
   recipientAddressCh!(ADDRESS) |
 
-  // Remove the following line (GENESIS_OPERATIONS) if you don't want prereserved names
+  // Remove the following line (GENESIS....) if you don't want prereserved names
   GENESIS_OPERATIONS
   records!({}) |
 
@@ -54,15 +54,12 @@ in {
           match result {
             true => {
               for (price <- priceCh) {
-                stdout!("Price changed successfully to new value") |
-                stdout!(payload.get("price")) |
-                return!("Price changed successfully to new value") |
+                return!(true) |
                 priceCh!(payload.get("price")) |
                 priceNonceCh!(payload.get("nonce"))
               }
             }
             false => {
-              stdout!("error: Invalid signature, could not change price") |
               return!("error: Invalid signature, could not change price") |
               priceNonceCh!(priceNonce)
             }
@@ -132,81 +129,88 @@ in {
   } |
 
   // create a record
-  contract createCh(record, return) = {
+  contract createCh(record, paymentDataCh) = {
     stdout!("createCh") |
-    for (current <- records) {
+    for (current <<- records) {
       match *current.contains(*record.get("name")) {
         true => {
-          return!("error: name " ++ *record.get("name") ++ " already taken") |
+          paymentDataCh!("error: name " ++ *record.get("name") ++ " already taken") |
           records!(*current)
         }
         false => {
-          new payRevReturnCh,
+          new revVaultCh,
+            payRevReturnCh,
             payRevDataCh,
             revVaultCh,
             revAddressCh,
+            paymentDoneCh,
+            performCashingCh,
             RevAddress(`rho:rev:address`)
           in {
-            // Payment handling
-            for (@(pubKey, deployerId) <- payRevDataCh) {
+            for (@price <<- priceCh; @recipientAddress <<- recipientAddressCh) {
+              registryLookup!(`rho:rchain:revVault`, *revVaultCh) |
 
-              RevAddress!("fromPublicKey", pubKey.hexToBytes(), *revAddressCh) |
-
-              for (@revAddress <- revAddressCh; @price <- priceCh; @recipientAddress <- recipientAddressCh) {
-                priceCh!(price) |
-                recipientAddressCh!(recipientAddress) |
-                rl!(`rho:rchain:revVault`, *revVaultCh) |
-                for (@(_, RevVault) <- revVaultCh) {
-                  new vaultCh, vaultTo, revVaultkeyCh,
-                    deployId(`rho:rchain:deployId`)
-                  in {
-                    match (revAddress, recipientAddress, price) {
-                      (revAddrFrom, revAddrTo, amount) => {
-                        @RevVault!("findOrCreate", revAddrFrom, *vaultCh) |
-                        @RevVault!("deployerAuthKey", deployerId, *revVaultkeyCh) |
-                        for (@vault <- vaultCh; key <- revVaultkeyCh) {
-                          match vault {
-                            (true, vault) => {
-                              new resultCh in {
-                                @vault!("transfer", revAddrTo, amount, *key, *resultCh) |
-                                for (@result <- resultCh) {
-                                  stdout!(("Trying to transfer ", price, "from", revAddrFrom, "to", revAddrTo)) |
-                                  stdout!(result) |
-                                  match result {
-                                    (true , Nil) => payRevReturnCh!(true)
-                                    (false, err) => payRevReturnCh!(err)
+              /*
+                Create a vault/purse that is just used once (purse)
+              */
+              for(@(_, *revVault) <- revVaultCh) {
+                new unf, purseRevAddrCh, purseAuthKeyCh, purseVaultCh, revAddressCh, paymentDoneCh in {
+                  revAddress!("fromUnforgeable", *unf, *purseRevAddrCh) |
+                  revVault!("unforgeableAuthKey", *unf, *purseAuthKeyCh) |
+                  for (@purseAuthKey <- purseAuthKeyCh; @purseRevAddr <- purseRevAddrCh) {
+                    stdout!({"new purse rev addr": purseRevAddr, "purse authKey": purseAuthKey}) |
+                    revVault!("findOrCreate", purseRevAddr, *purseVaultCh) |
+                    for (@(true, *vault) <- purseVaultCh) {
+                      /*
+                        Send payment data to client
+                      */
+                      paymentDataCh!(
+                        (
+                          {                         
+                            "purseRevAddr": purseRevAddr,
+                            "price": price,
+                          },
+                          *paymentDoneCh
+                        )
+                      ) |
+                      for (@(resp, returnCh2) <- paymentDoneCh) {
+                        new recipientVaultCh, vaultTo, revVaultkeyCh in {
+                          match (purseRevAddr, recipientAddress, price) {
+                            (revAddrFrom, revAddrTo, amount) => {
+                              revVault!("findOrCreate", revAddrFrom, *recipientVaultCh) |
+                              for (@vault <- recipientVaultCh) {
+                                match vault {
+                                  (true, vault) => {
+                                    new resultCh in {
+                                      @vault!("transfer", revAddrTo, amount, purseAuthKey, *resultCh) |
+                                      for (@result <- resultCh) {
+                                        stdout!(("Trying to transfer ", price, "from", revAddrFrom, "to", revAddrTo)) |
+                                        stdout!(result) |
+                                        match result {
+                                          (true , Nil) => {
+                                            new recordUriCh in {
+                                              insertArbitrary!(*record, *recordUriCh) |
+                                              for (r <- records; recordUri <- recordUriCh) {
+                                                stdout!("success: record " ++ *record.get("name") ++ " created") |
+                                                @returnCh2!(true) |
+                                                records!(*current.set(*record.get("name"), *recordUri))
+                                              }
+                                            }
+                                          }
+                                          (false, err) => @returnCh2!(err)
+                                        }
+                                      }
+                                    }
                                   }
+                                  err => { payRevReturnCh!(err) }
                                 }
                               }
                             }
-                            err => { payRevReturnCh!(err) }
                           }
                         }
                       }
                     }
                   }
-                }
-              }
-            } |
-
-            payRevDataCh!((*record.get("publicKey"), *record.get("deployerId"))) |
-            
-            for (a <- payRevReturnCh) {
-              match *a {
-                true => {
-                  new recordUriCh in {
-                    insertArbitrary!(*record.delete("deployerId"), *recordUriCh) |
-                    for (recordUri <- recordUriCh) {
-                      stdout!("success: record " ++ *record.get("name") ++ " created") |
-                      return!(true) |
-                      records!(*current.set(*record.get("name"), *recordUri))
-                    }
-                  }
-                }
-                _ => {
-                  stdout!("error: payment failure") |
-                  return!("error: payment failure") |
-                  records!(*current)
                 }
               }
             }
@@ -220,38 +224,73 @@ in {
     stdout!(action) |
     match action.get("type") {
       "CREATE" => {
-        createCh!(action.get("payload"), return)
+        match action.get("payload") {
+          {
+            "publicKey": String,
+            "nonce": String,
+            "address": String,
+            "name": String,
+            "servers": _
+          } => {
+            createCh!(action.get("payload"), return)
+          }
+          _ => {
+            @return!("Invalid payload")
+          }
+        }
       }
       "UPDATE" => {
-        updateCh!(action.get("payload"), return)
+        match action.get("payload") {
+          {
+            "signature": String,
+            "publicKey": String,
+            "nonce": String,
+            "address": String,
+            "name": String,
+            "servers": _
+          } => {
+            updateCh!(action.get("payload"), return)
+          }
+          _ => {
+            @return!("Invalid payload")
+          }
+        }
       }
       "CHANGE_PRICE" => {
-        changePriceCh!(action.get("payload"), return)
+        match action.get("payload") {
+          {
+            "signature": String,
+            "price": Int,
+            "nonce": String,
+          } => {
+            changePriceCh!(action.get("payload"), return)
+          }
+          _ => {
+            @return!("Invalid payload")
+          }
+        }
+      }
+      "READ" => {
+        for (current <<- records; priceNonce <<- priceNonceCh; price <<- priceCh) {
+          @return!({
+            "records": *current,
+            "priceNonce": *priceNonce,
+            "price": *price
+          })
+        }
       }
     }
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
-  insertArbitrary!(*recordsReaderCh, *recordsUriCh) |
 
-  for (ch <= recordsReaderCh) {
-    for (current <<- records; priceNonce <<- priceNonceCh) {
-      ch!({
-        "records": *current,
-        "priceNonce": *priceNonce
-      })
-    }
-  } |
-
-  for (entryUri <- entryUriCh; recordsUri <- recordsUriCh) {
+  for (entryUri <- entryUriCh) {
     stdout!({
-      "entryRegistryUri": *entryUri,
-      "recordsRegistryUri": *recordsUri,
+      "registryUri": *entryUri,
       "recordsUnforgeableName": *records
     }) |
     basket!({
-      "entryRegistryUri": *entryUri,
-      "recordsRegistryUri": *recordsUri,
+      "registryUri": *entryUri,
       "recordsUnforgeableName": *records
     })
   }
