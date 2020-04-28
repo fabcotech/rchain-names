@@ -1,11 +1,9 @@
 {
   "name": "rchain-names",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Rholang code for managing names records and nodes on a decentralized Dappy network.",
-  "main": "names.rho",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "src/index.js",
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fabcotech/rchain-names.git"
