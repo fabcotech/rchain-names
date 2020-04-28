@@ -1,12 +1,14 @@
 module.exports.createNameTerm = (
   registryUri,
   newNonce,
+  name,
   publicKey,
   serversAsString,
   address,
   price
 ) => {
-  return `new 
+  return `new
+  basket,
   revAddress(\`rho:rev:address\`),
   registryLookup(\`rho:registry:lookup\`),
   stdout(\`rho:io:stdout\`),
@@ -71,10 +73,12 @@ in {
                                     for (@res2 <- returnCh2) {
                                       match res2 {
                                         true => {
-                                          stdout!("purchase successful")
+                                          stdout!("purchase successful") |
+                                          basket!({ "status": "completed" })
                                         }
                                         _ => {
-                                          stdout!(res2)
+                                          stdout!(res2) |
+                                          basket!({ "status": "failed", "message": res2 })
                                         }
                                       }
                                     }
@@ -83,9 +87,9 @@ in {
                               }
       
                             }
-                            _ => {
-                              stdout!("error in transfer") |
-                              stdout!(result)
+                            (false, err) => {
+                              basket!({ "status": "failed", "message": err }) |
+                              stdout!(err)
                             }
                           }
                         }
@@ -96,7 +100,8 @@ in {
               }
             }
             a => {
-              stdout!(a)
+              basket!({ "status": "failed", "message": "error: invalid payload from recipient" }) |
+              stdout!("error: invalid payload from recipient")
             }
           }
         }
