@@ -4,6 +4,7 @@ module.exports.updateNameTerm = (
   name,
   publicKey,
   serversAsString,
+  address,
   signature
 ) => {
   return `new updateCh,
@@ -20,6 +21,7 @@ module.exports.updateNameTerm = (
         "payload": {
           "name": "${name}",
           "servers": ${serversAsString},
+          "address": "${address}",
           "publicKey": "${publicKey}",
           "signature": "${signature}",
           "nonce": "${newNonce}",
