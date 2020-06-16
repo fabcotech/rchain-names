@@ -5,6 +5,7 @@ new
   createCh,
   changePriceCh,
   entry,
+  validateAndDefaultsCh,
   entryUriCh,
   recordsUriCh,
   updateUriCh,
@@ -24,13 +25,38 @@ in {
   // 1 REV
   priceCh!(1500000000) |
 
-  priceNonceCh!(NONCE) |
+  /* priceNonceCh!(NONCE) |
   publicKeyCh!(PUBLIC_KEY) |
-  recipientAddressCh!(ADDRESS) |
+  recipientAddressCh!(ADDRESS) | */
+    priceNonceCh!("abcde") |
+  publicKeyCh!("04e1180066b75b4443f32070b7789a4e2582fde49c69730bba0a3a737ddb186d9b6966ef069c1b5b99992693554969031f7f7a8a1ccc1b71b3fa96c60d089ce09c") |
+  recipientAddressCh!("11112bqTgF7Ve48AjUuLZbsoyeTiLkVd7Kex7gYMDuBov3eRKBf6Lb") |
 
   // Remove the following line (GENESIS....) if you don't want prereserved names
-  GENESIS_OPERATIONS
+  //GENESIS_OPERATIONS
   records!({}) |
+
+  // Records from previous deploy
+  new oldRecordsCh, oldEntryUriCh in {
+    registryLookup!(`rho:id:enptnjbuoha16ap37k73or5nwfnkpux5xip55dgmrch3j9xkqb7nhx`, *oldEntryUriCh) |
+    for(oldEntry <- oldEntryUriCh) {
+      oldEntry!((
+        {
+          "type": "READ",
+        },
+        *oldRecordsCh
+      ))
+    } |
+    for (@oldRecords <- oldRecordsCh) {
+      stdout!("OK") |
+      stdout!(oldRecords) |
+      stdout!("found ${n} old records" %% { "n": oldRecords.get("records").size() }) |
+      records!(oldRecords.get("records"))
+    }
+  } |
+  // Or emtpy records
+  //records!({}) |
+
 
   // Change the price of record purchase
   contract changePriceCh(@payload, return) = {
@@ -220,39 +246,100 @@ in {
     }
   } |
 
+  contract validateAndDefaultsCh(@record, return) = {
+    new x1, x2, x3, x4, s in {
+      s!(record) |
+      // Default values
+      match record.get("servers") {
+        Nil => {
+          for (val <- s) {
+            s!(*val.set("servers", [])) |
+            x1!(true)
+          }
+        }
+        _ => { x1!(true) }
+      } |
+      match record.get("badges") {
+        Nil => {
+          for (val <- s) {
+            s!(*val.set("badges", {})) |
+            x2!(true)
+          }
+        }
+        _ => { x2!(true) }
+      } |
+      match record.get("address") {
+        Nil => {
+          for (val <- s) {
+            s!(*val.set("address", Nil)) |
+            x3!(true)
+          }
+        }
+        _ => { x3!(true) }
+      } |
+      // just for UPDATE
+      match record.get("signature") {
+        Nil => {
+          for (val <- s) {
+            s!(*val.set("signature", Nil)) |
+            x4!(true)
+          }
+        }
+        _ => { x4!(true) }
+      } |
+      for (_ <- x1; _ <- x2; _ <- x3; _ <- x4) {
+        for (val <- s) {
+          match *val {
+            {
+              "publicKey": String,
+              "nonce": String,
+              "address": String \/ Nil,
+              "signature": String \/ Nil, // just for UPDATE
+              "name": String,
+              "servers": _,
+              "badges": _
+            } => {
+              return!((true, *val))
+            }
+            _ => {
+              return!((false, "Invalid payload"))
+            }
+          }
+        }
+      }
+    }
+  } |
+
   contract entry(@(action, return)) = {
     stdout!(action) |
     match action.get("type") {
       "CREATE" => {
-        match action.get("payload") {
-          {
-            "publicKey": String,
-            "nonce": String,
-            "address": String,
-            "name": String,
-            "servers": _
-          } => {
-            createCh!(action.get("payload"), return)
-          }
-          _ => {
-            @return!("Invalid payload")
+        new valueWithDefaultsCh in {
+          validateAndDefaultsCh!(action.get("payload"), *valueWithDefaultsCh) |
+          for (validateReturn <- valueWithDefaultsCh) {
+            match *validateReturn {
+              (true, recordWithDefaults) => {
+                createCh!(recordWithDefaults, return)
+              }
+              (false, error) => {
+                @return!(error)
+              }
+            }
           }
         }
       }
       "UPDATE" => {
-        match action.get("payload") {
-          {
-            "signature": String,
-            "publicKey": String,
-            "nonce": String,
-            "address": String,
-            "name": String,
-            "servers": _
-          } => {
-            updateCh!(action.get("payload"), return)
-          }
-          _ => {
-            @return!("Invalid payload")
+        new valueWithDefaultsCh in {
+          validateAndDefaultsCh!(action.get("payload"), *valueWithDefaultsCh) |
+          for (validateReturn <- valueWithDefaultsCh) {
+            match *validateReturn {
+              (true, recordWithDefaults) => {
+                updateCh!(recordWithDefaults, return)
+              }
+              (false, error) => {
+                @return!(error)
+              }
+            }
           }
         }
       }

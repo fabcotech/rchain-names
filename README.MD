@@ -161,7 +161,7 @@ Nevertheless you are free to deploy this records contract and use it the way you
 
 **See Pre-reserved names paragraph**
 
-It could be a cool idea to forbid anyone from buying one of the 10 000 more frequented websites in the world. All these names could be at genesis owned by a honest third party who's only purpose is to identify the legitimate requests from big corporations or governements for a given name. When rightly identified, the third party would just edit the public key of the record so its owner changes.
+The top 100, top 1000 etc... domain must be reserved. Check https://umbrella.cisco.com/blog/cisco-umbrella-1-million
 
 #### Handle dollar/REVS rate fluctuations
 

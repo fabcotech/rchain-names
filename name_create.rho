@@ -14,10 +14,8 @@ in {
       {
         "type": "CREATE",
         "payload": {
-          "name": "dappy5",
-          "publicKey": publicKey,
-          "servers": [],
-          "address": "aaabbb",
+          "name": "dappy6",
+          "publicKey": "PUBLIC_KEY",
           "nonce": "aea7d21543944c4cafc3cdb5e96c6a8b",
         }
       },

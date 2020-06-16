@@ -4,6 +4,7 @@ module.exports.updateNameTerm = (
   name,
   publicKey,
   serversAsString,
+  badgesAsString,
   address,
   signature
 ) => {
@@ -21,7 +22,8 @@ module.exports.updateNameTerm = (
         "payload": {
           "name": "${name}",
           "servers": ${serversAsString},
-          "address": "${address}",
+          "badges": ${badgesAsString},
+          ${address ? '"address": "' + address + '",' : ""}
           "publicKey": "${publicKey}",
           "signature": "${signature}",
           "nonce": "${newNonce}",

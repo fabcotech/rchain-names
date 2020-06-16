@@ -1,0 +1,18 @@
+new
+  registryLookup(`rho:registry:lookup`),
+  stdout(`rho:io:stdout`),
+  entryCh
+in {
+
+  registryLookup!(`rho:id:REGISTRY_URI`, *entryCh) |
+  
+  for(entry <- entryCh) {
+    entry!((
+      {
+        "type": "READ",
+      },
+      *stdout
+    ))
+  }
+
+}

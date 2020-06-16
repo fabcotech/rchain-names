@@ -5,6 +5,7 @@ module.exports.updateNameTermDappy = (
   name,
   publicKey,
   serversAsString,
+  badgesAsString,
   address
 ) => {
   return {
@@ -22,7 +23,8 @@ module.exports.updateNameTermDappy = (
             "payload": {
               "name": "${name}",
               "servers": ${serversAsString},
-              "address": "${address}",
+              "badges": ${badgesAsString},
+              ${address ? '"address": "' + address + '",' : ""}
               "publicKey": "${publicKey}",
               "signature": "SIGN",
               "nonce": "${newNonce}",

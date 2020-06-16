@@ -4,6 +4,7 @@ module.exports.createNameTerm = (
   name,
   publicKey,
   serversAsString,
+  badgesAsString,
   address,
   price
 ) => {
@@ -29,7 +30,8 @@ in {
           "name": "${name}",
           "publicKey": publicKey,
           "servers": ${serversAsString},
-          "address": "${address}",
+          "badges": ${badgesAsString},
+          ${address ? '"address": "' + address + '",' : ""}
           "nonce": "${newNonce}",
         }
       },
