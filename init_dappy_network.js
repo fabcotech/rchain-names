@@ -118,7 +118,7 @@ const main = async () => {
       `"${rchainToolkit.utils.revAddressFromPublicKey(publicKey)}"`
     );
 
-  // { facebook : '{ \"name\": \"facebok\"  etc... }', ...  }
+  // { facebook : '{ \"name\": \"facebook\"  etc... }', ...  }
   let prereservedNamesComplete = {};
   if (prereservedNames) {
     prereservedNames.slice(0, 100).forEach((n, i) => {
@@ -132,7 +132,9 @@ const main = async () => {
     });
   }
 
-  if (process.env.NAMES_TO_RECOVER_URI) {
+  // Old way of recovering names from existing name system
+  // Now it must be done onchain
+  /*   if (process.env.NAMES_TO_RECOVER_URI) {
     log("Started recovering names from existing name system");
     // todo : change the term to be rholang-files-module v0.4 compatible
     const r = await rchainToolkit.http.exploreDeploy(httpUrlReadOnly, {
@@ -221,6 +223,7 @@ const main = async () => {
   } else {
     term = term.replace("GENESIS_OPERATIONS", "");
   }
+  */
 
   const deployOptions = await rchainToolkit.utils.getDeployOptions(
     "secp256k1",
@@ -287,9 +290,11 @@ const main = async () => {
           rchainToolkit.http
             .dataAtName(httpUrlValidator, {
               name: unforgeableNameQuery,
-              depth: 5,
+              depth: 3,
             })
             .then((dataAtNameResponse) => {
+              console.log("===============");
+              console.log(dataAtNameResponse);
               if (
                 dataAtNameResponse &&
                 JSON.parse(dataAtNameResponse).exprs.length
@@ -417,7 +422,7 @@ const main = async () => {
           rchainToolkit.http
             .dataAtName(httpUrlValidator, {
               name: unforgeableNameQuery2,
-              depth: 5,
+              depth: 3,
             })
             .then((dataAtNameResponse) => {
               if (

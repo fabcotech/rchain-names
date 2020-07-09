@@ -1,7 +1,6 @@
 new
   basket,
   nodes,
-  nodesReaderCh,
   remove,
   add,
   entry,
@@ -76,27 +75,23 @@ hYC/xCXfAxQRUfkTmgL0LkTU1T8KqA8IWD1Xx1FZhJQcKfIY+STfgSeqJNoXJFxD
       "REMOVE" => {
         remove!(action.get("payload"), return)
       }
+      "READ" => {
+        for (current <<- nodes) {
+          @return!(*current)
+        }
+      }
     }
   } |
 
   insertArbitrary!(*entry, *entryUriCh) |
-  insertArbitrary!(*nodesReaderCh, *nodesUriCh) |
   
-  for (ch <= nodesReaderCh) {
-    for (current <<- nodes) {
-      ch!(*current)
-    }
-  } |
-
-  for (entryUri <- entryUriCh; nodesUri <- nodesUriCh) {
+  for (entryUri <- entryUriCh) {
     basket!({
-      "entryRegistryUri": *entryUri,
-      "nodesRegistryUri": *nodesUri,
+      "registryUri": *entryUri,
       "nodesUnforgeableName": *nodes
     }) |
     stdout!({
-      "entryRegistryUri": *entryUri,
-      "nodesRegistryUri": *nodesUri,
+      "registryUri": *entryUri,
       "nodesUnforgeableName": *nodes
     })
   }

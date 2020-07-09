@@ -7,7 +7,7 @@ const fs = require("fs");
 const file = fs.readFileSync("./top1000domains.txt", "utf8");
 
 let domains = {};
-let string = "module.exports.names = [\n";
+let string = "module.exports.prereservedNames = [\n";
 file.split("\n").forEach(d => {
   const domain = d.split(".")[d.split(".").length - 2];
   if (!domains[domain]) {

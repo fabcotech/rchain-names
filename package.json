@@ -21,7 +21,7 @@
     "blakejs": "^1.1.0",
     "dotenv": "^8.2.0",
     "js-sha3": "^0.8.0",
-    "rchain-toolkit": "0.2.3",
+    "rchain-toolkit": "0.2.4",
     "uuid": "3.4.0"
   }
 }

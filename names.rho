@@ -22,47 +22,97 @@ new
   revAddress(`rho:rev:address`)
 in {
 
-  // 1 REV
-  priceCh!(1500000000) |
+  // 10 REV
+  priceCh!(1000000000) |
 
-  /* priceNonceCh!(NONCE) |
+  priceNonceCh!(NONCE) |
   publicKeyCh!(PUBLIC_KEY) |
-  recipientAddressCh!(ADDRESS) | */
-    priceNonceCh!("abcde") |
-  publicKeyCh!("04e1180066b75b4443f32070b7789a4e2582fde49c69730bba0a3a737ddb186d9b6966ef069c1b5b99992693554969031f7f7a8a1ccc1b71b3fa96c60d089ce09c") |
-  recipientAddressCh!("11112bqTgF7Ve48AjUuLZbsoyeTiLkVd7Kex7gYMDuBov3eRKBf6Lb") |
+  recipientAddressCh!(ADDRESS) |
 
   // Remove the following line (GENESIS....) if you don't want prereserved names
   //GENESIS_OPERATIONS
   records!({}) |
 
-  // Records from previous deploy
+  // Remove the following block if you don't need
+  // names from a previous deploy
+  // START Records from previous deploy
   new oldRecordsCh, oldEntryUriCh in {
-    registryLookup!(`rho:id:enptnjbuoha16ap37k73or5nwfnkpux5xip55dgmrch3j9xkqb7nhx`, *oldEntryUriCh) |
+    registryLookup!(
+      `rho:id:URI`,
+      *oldEntryUriCh
+    ) |
     for(oldEntry <- oldEntryUriCh) {
       oldEntry!((
-        {
-          "type": "READ",
-        },
+        { "type": "READ" },
         *oldRecordsCh
       ))
     } |
     for (@oldRecords <- oldRecordsCh) {
-      stdout!("OK") |
-      stdout!(oldRecords) |
-      stdout!("found ${n} old records" %% { "n": oldRecords.get("records").size() }) |
-      records!(oldRecords.get("records"))
+      new iterate, recordUriCh, recordCh, n in {
+        n!(0) |
+        /* get old record and update it */
+        for (@(name, uri) <= recordUriCh) {
+          for (@val <- n) {
+            n!(val + 1) |
+            stdout!(val)
+          } |
+          registryLookup!(uri, *recordCh) |
+          for(@r <- recordCh) {
+            for (@current <- records) {
+              new recordUriCh in {
+                insertArbitrary!(
+                  // Apply modifications to the record here
+                  r.set("badges", {}),
+                  *recordUriCh
+                ) |
+                for (@recordUri <- recordUriCh) {
+                  records!(
+                    current.set(
+                      name,
+                      recordUri
+                    )
+                  )
+                }
+              }
+            }
+          }
+        } |
+        for (@set <= iterate) {
+          match set {
+            Nil                 => {
+              stdout!("End iteration")
+            }
+            Set(last)           => {
+              // stdout!("last one") |
+              recordUriCh!((last, oldRecords.get("records").get(last)))
+            }
+            Set(first ... rest) => {
+              // stdout!(("first is", first, rest)) |
+              iterate!(rest) |
+              recordUriCh!((first, oldRecords.get("records").get(first)))
+            }
+            _ => {
+              stdout!("End iteration")
+            }
+          }
+        } |
+        stdout!(oldRecords.get("records").keys()) |
+        iterate!(oldRecords.get("records").keys())
+      } |
+      stdout!("found ${n} old records" %% { "n": oldRecords.get("records").size() })
     }
   } |
-  // Or emtpy records
-  //records!({}) |
+  // END Records from previous deploy
 
 
   // Change the price of record purchase
   contract changePriceCh(@payload, return) = {
     stdout!("changePriceCh") |
     new hashCh, verifySignatureChangePriceCh in {
-      for (@priceNonce <- priceNonceCh; @publicKey <- publicKeyCh) {
+      for (
+        @priceNonce <- priceNonceCh;
+        @publicKey <- publicKeyCh
+      ) {
         publicKeyCh!(publicKey) |
         blake2b256!(
           priceNonce.toUtf8Bytes(),
@@ -358,11 +408,19 @@ in {
         }
       }
       "READ" => {
-        for (current <<- records; priceNonce <<- priceNonceCh; price <<- priceCh) {
+        for (
+          current <<- records;
+          priceNonce <<- priceNonceCh;
+          price <<- priceCh;
+          publicKey <<- publicKeyCh;
+          recipientAddress <<- recipientAddressCh
+        ) {
           @return!({
             "records": *current,
             "priceNonce": *priceNonce,
-            "price": *price
+            "price": *price,
+            "publicKey": *publicKey,
+            "recipientAddress": *recipientAddress
           })
         }
       }

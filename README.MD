@@ -168,3 +168,19 @@ The top 100, top 1000 etc... domain must be reserved. Check https://umbrella.cis
 You are free to express price in raw REVs. Under a Dappy network, we need to have a mapping to some major fiat currency rate (dollar or euro) so the price is generally stable from an outside point of view.
 
 The prices on chain can only be expressed in REVs, their will be some kind of third party controlled variable that maintains a fair conversion rate between REVS and US dollars
+
+#### Testnet .env config
+
+READ_ONLY_HOST=https://observer.testnet.rchain.coop
+READ_ONLY_HTTP_PORT=443
+VALIDATOR_HOST=https://node2.testnet.rchain-dev.tk
+VALIDATOR_GRPC_PROPOSE_PORT=40402
+VALIDATOR_HTTP_PORT=443
+
+#### Mainnet .env config
+
+READ_ONLY_HOST=https://observer-asia.services.mainnet.rchain.coop
+READ_ONLY_HTTP_PORT=443
+VALIDATOR_HOST=https://node3.root-shard.mainnet.rchain.coop
+VALIDATOR_GRPC_PROPOSE_PORT=40401
+VALIDATOR_HTTP_PORT=443
