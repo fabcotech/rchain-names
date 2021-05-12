@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/fabcotech/rchain-names#readme",
   "dependencies": {
-    "@grpc/grpc-js": "^0.6.9",
+    "@grpc/grpc-js": "^1.1.8",
     "@grpc/proto-loader": "^0.5.2",
     "base-58": "0.0.1",
     "blakejs": "^1.1.0",
