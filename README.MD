@@ -1,3 +1,9 @@
+### Out of date / unmaintained repository
+
+rchain-names is not maintained anymore, the dappy name system is now managed by a NFT contract. Check [fabcotech/rchain-token](https://github.com/fabcotech/rchain-token).
+
+### Rchain names
+
 Rholang code for managing names records and nodes on a decentralized Dappy network.
 
 The `names.rho` file is a DNS-like record. Anyone can buy name, and link it to an unforgeable name, under the Dappy system, this unforgeable name must point to a file that has been uploaded to the blockchain. See [dappy-cli](https://github.com/fabcotech/dappy-cli).
